@@ -1,0 +1,51 @@
+<div class="container">
+  <div class="page-header">
+    <h1>Mitarbeiterliste</h1>
+    <a routerLink="/mitarbeiter/neu" class="btn-primary">+ Mitarbeiter anlegen</a>
+  </div>
+
+  <div *ngIf="isLoading" class="loading">Laden…</div>
+
+  <div *ngIf="!isLoading && mitarbeiter.length === 0" class="empty-state">
+    <p>Keine Mitarbeiter gefunden.</p>
+  </div>
+
+  <div *ngIf="!isLoading && mitarbeiter.length > 0" class="users-table-responsive">
+    <table class="users-table">
+      <thead>
+        <tr>
+          <th>ID</th><th>Name</th><th>E-Mail</th><th>Bundesland</th><th>Vorgesetzter</th>
+          <th style="text-align: center; width: 150px;">Aktionen</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let m of mitarbeiter">
+          <td>
+            <a [routerLink]="['/mitarbeiter', m.id, 'bearbeiten']" [title]="mitarbeiterTooltip(m)" class="link">
+              <code>{{ m.id }}</code>
+            </a>
+          </td>
+          <td>{{ m.vorname }} {{ m.nachname }}</td>
+          <td>{{ m.email }}</td>
+          <td>{{ bundeslandLabels[m.bundesland] }}</td>
+          <td>
+            <ng-container *ngIf="m.vorgesetzterMitarbeiterId; else keinVorgesetzter">
+              <a
+                [routerLink]="['/mitarbeiter', m.vorgesetzterMitarbeiterId, 'bearbeiten']"
+                [title]="vorgesetzterTooltip(m.vorgesetzterMitarbeiterId)"
+                class="link"
+              >
+                <code>{{ m.vorgesetzterMitarbeiterId }}</code>
+              </a>
+            </ng-container>
+            <ng-template #keinVorgesetzter>–</ng-template>
+          </td>
+          <td style="text-align: center;">
+            <a [routerLink]="['/urlaubsantraege/neu']" [queryParams]="{ mitarbeiterId: m.id }" class="btn-small">Urlaubsantrag</a>
+            <button type="button" (click)="loeschen(m.id)" class="btn-small btn-danger">Löschen</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

@@ -1,0 +1,80 @@
+<div class="container">
+  <div class="dashboard-wrapper">
+    <h1>Willkommen!</h1>
+    <!-- Urlaubskonto -->
+    <div class="stats-section" *ngIf="urlaubskonto">
+      <h2>Urlaubskonto {{ aktuellesJahr }}</h2>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value">{{ urlaubskonto.gesamtTage }}</div>
+          <div class="stat-label">Gesamt</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">{{ urlaubskonto.gebuchteTage }}</div>
+          <div class="stat-label">Gebucht</div>
+        </div>
+        <div class="stat-card highlight">
+          <div class="stat-value">{{ urlaubskonto.verbleibendeTage }}</div>
+          <div class="stat-label">Verbleibend</div>
+        </div>
+      </div>
+      <div class="progress-bar">
+        <div class="progress" [style.width.%]="progressPercent"></div>
+      </div>
+    </div>
+
+    <div class="stats-section" *ngIf="!urlaubskonto && !isLoading">
+      <p class="info-hint">Noch kein Urlaubskonto für {{ aktuellesJahr }} angelegt.</p>
+    </div>
+
+    <!-- Antragsübersicht -->
+    <div class="stats-section">
+      <h2>Meine Anträge</h2>
+      <div class="stats-grid">
+        <div class="stat-card status-beantragt">
+          <div class="stat-value">{{ beantragt }}</div>
+          <div class="stat-label">Beantragt</div>
+        </div>
+        <div class="stat-card status-genehmigt">
+          <div class="stat-value">{{ genehmigt }}</div>
+          <div class="stat-label">Genehmigt</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Letzte Anträge -->
+    <div class="recent-section">
+      <div class="section-header">
+        <h2>Letzte Urlaubsanträge</h2>
+        <a routerLink="/urlaubsantraege" class="link">Alle anzeigen</a>
+      </div>
+
+      <div *ngIf="isLoading" class="loading">Laden…</div>
+
+      <div *ngIf="!isLoading && antraege.length === 0" class="empty-state">
+        <p>Noch keine Urlaubsanträge. <a routerLink="/mitarbeiter">Mitarbeiter für ersten Antrag auswählen</a></p>
+      </div>
+
+      <div *ngIf="!isLoading && antraege.length > 0" class="requests-table-responsive">
+        <table class="requests-table">
+          <thead>
+            <tr>
+              <th>Von</th><th>Bis</th><th>Tage</th><th>Art</th><th>Status</th><th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let antrag of antraege">
+              <td>{{ antrag.startdatum | date:'dd.MM.yyyy' }}</td>
+              <td>{{ antrag.enddatum   | date:'dd.MM.yyyy' }}</td>
+              <td>{{ calculateDays(antrag) }}</td>
+              <td>{{ antrag.urlaubsart }}</td>
+              <td><span class="status-badge" [class]="statusClass(antrag.status)">{{ statusLabel(antrag.status) }}</span></td>
+              <td><a [routerLink]="['/urlaubsantraege', antrag.id]" class="link">Details</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+

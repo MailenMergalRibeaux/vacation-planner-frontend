@@ -1,0 +1,114 @@
+<div class="container">
+  <div class="detail-wrapper">
+    <button (click)="zurueck()" class="btn-back">← Zurück</button>
+
+    <!-- Error Message -->
+    <div *ngIf="fehler" class="error-message">
+      {{ fehler }}
+      <div *ngIf="fehlendesUrlaubskonto" class="error-actions">
+        <button
+          type="button"
+          class="btn-create-konto"
+          (click)="urlaubskontoAnlegen()"
+          [disabled]="isCreatingUrlaubskonto || isSubmitting"
+        >
+          {{ isCreatingUrlaubskonto ? 'Urlaubskonto wird angelegt...' : ('Urlaubskonto für ' + fehlendesUrlaubskonto.jahr + ' anlegen') }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="isLoading" class="loading">Laden…</div>
+
+    <!-- Detail Content -->
+    <div *ngIf="!isLoading && antrag" class="detail-container">
+      <div class="detail-header">
+        <div>
+          <h1>Urlaubsantrag #{{ antrag.id }}</h1>
+          <span class="status-badge" [class]="statusClass(antrag.status)">
+            {{ statusLabel(antrag.status) }}
+          </span>
+        </div>
+      </div>
+
+      <div class="detail-grid">
+        <!-- Main Info -->
+        <div class="detail-section">
+          <h2>Antragsdaten</h2>
+          <div class="detail-field">
+            <label>Startdatum</label>
+            <p>{{ antrag.startdatum | date:'dd.MM.yyyy' }}</p>
+          </div>
+          <div class="detail-field">
+            <label>Enddatum</label>
+            <p>{{ antrag.enddatum   | date:'dd.MM.yyyy' }}</p>
+          </div>
+          <div class="detail-field">
+            <label>Tage</label>
+            <p>{{ calculateDays() }}</p>
+          </div>
+          <div class="detail-field">
+            <label>Urlaubsart</label>
+            <p>{{ antrag.urlaubsart }}</p>
+          </div>
+          <div class="detail-field">
+            <label>Kommentar</label>
+            <p>{{ antrag.kommentar || '–' }}</p>
+          </div>
+        </div>
+
+        <!-- Additional Info -->
+        <div class="detail-section">
+          <h2>Zeitstempel</h2>
+          <div class="detail-field">
+            <label>Erstellt am</label>
+            <p>{{ antrag.erstelltAm  | date:'dd.MM.yyyy HH:mm' }}</p>
+          </div>
+          <div class="detail-field">
+            <label>Geändert am</label>
+            <p>{{ antrag.geaendertAm | date:'dd.MM.yyyy HH:mm' }}</p>
+          </div>
+          <div class="detail-field">
+            <label>Mitarbeiter-ID</label>
+            <p>{{ antrag.mitarbeiterId }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="detail-actions">
+        <a *ngIf="kannBearbeiten()" [routerLink]="['/urlaubsantraege', antrag.id, 'bearbeiten']" class="btn-primary">Bearbeiten</a>
+        <button
+          *ngIf="kannGenehmigen()"
+          (click)="genehmigen()"
+          class="btn-success"
+          [disabled]="isSubmitting"
+        >
+          Genehmigen
+        </button>
+        <button
+          *ngIf="kannAblehnen()"
+          (click)="ablehnen()"
+          class="btn-danger"
+          [disabled]="isSubmitting"
+        >
+          Ablehnen
+        </button>
+        <button
+          *ngIf="kannStornieren()"
+          (click)="stornieren()"
+          class="btn-secondary"
+          [disabled]="isSubmitting"
+        >
+          Stornieren
+        </button>
+        <button (click)="zurueck()" class="btn-secondary">Schließen</button>
+      </div>
+    </div>
+
+    <div *ngIf="!isLoading && !antrag" class="error-message">
+      Antrag nicht gefunden
+    </div>
+  </div>
+</div>
+

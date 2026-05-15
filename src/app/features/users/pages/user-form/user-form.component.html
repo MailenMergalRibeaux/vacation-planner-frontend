@@ -1,0 +1,61 @@
+<div class="container">
+  <div class="form-wrapper">
+    <h1>{{ editId ? 'Mitarbeiter bearbeiten' : 'Neuen Mitarbeiter anlegen' }}</h1>
+
+    <div *ngIf="fehler" class="error-message">{{ fehler }}</div>
+    <div *ngIf="isLoading" class="loading">Laden...</div>
+
+    <form *ngIf="!isLoading" [formGroup]="form" (ngSubmit)="speichern()" class="form-container">
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="id">Mitarbeiter-ID <span class="required">*</span></label>
+          <input id="id" type="text" formControlName="id" class="form-control" placeholder="z.B. m12345" />
+        </div>
+
+        <div class="form-field">
+          <label for="email">E-Mail <span class="required">*</span></label>
+          <input id="email" type="email" formControlName="email" class="form-control" placeholder="name@firma.de" />
+        </div>
+
+        <div class="form-field">
+          <label for="vorname">Vorname <span class="required">*</span></label>
+          <input id="vorname" type="text" formControlName="vorname" class="form-control" />
+        </div>
+
+        <div class="form-field">
+          <label for="nachname">Nachname <span class="required">*</span></label>
+          <input id="nachname" type="text" formControlName="nachname" class="form-control" />
+        </div>
+
+        <div class="form-field">
+          <label for="bundesland">Bundesland <span class="required">*</span></label>
+          <select id="bundesland" formControlName="bundesland" class="form-control">
+            <option *ngFor="let bundesland of bundeslaender" [value]="bundesland">
+              {{ bundeslandLabels[bundesland] }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="vorgesetzterMitarbeiterId">Vorgesetzter (optional)</label>
+          <select id="vorgesetzterMitarbeiterId" formControlName="vorgesetzterMitarbeiterId" class="form-control">
+            <option value="">- Kein Vorgesetzter -</option>
+            <option *ngFor="let v of vorgesetzte" [value]="v.id">
+              {{ v.vorname }} {{ v.nachname }} ({{ v.id }})
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-primary" [disabled]="isSaving || form.invalid">
+          {{ isSaving ? 'Speichern...' : (editId ? 'Aenderungen speichern' : 'Mitarbeiter anlegen') }}
+        </button>
+        <button type="button" class="btn-secondary" (click)="abbrechen()" [disabled]="isSaving">
+          Abbrechen
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+

@@ -1,0 +1,56 @@
+<div class="container">
+  <div class="page-header">
+    <h1>Urlaubsanträge</h1>
+    <button (click)="neuerAntrag()" class="btn-primary">+ Mitarbeiter für Antrag wählen</button>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-section">
+    <label>Status:&nbsp;
+      <select [(ngModel)]="filterStatus" (change)="laden()">
+        <option *ngFor="let o of statusOptions" [value]="o.value">{{ o.label }}</option>
+      </select>
+    </label>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading">Laden…</div>
+
+  <!-- Empty State -->
+  <div *ngIf="!isLoading && antraege.length === 0" class="empty-state">
+    <p>Keine Urlaubsanträge gefunden.</p>
+    <button (click)="neuerAntrag()" class="btn-primary">Mitarbeiter für ersten Antrag wählen</button>
+  </div>
+
+  <!-- Requests Table -->
+  <div *ngIf="!isLoading && antraege.length > 0" class="requests-table-responsive">
+    <table class="requests-table">
+      <thead>
+        <tr>
+          <th>Mitarbeiter-ID</th><th>Von</th><th>Bis</th><th>Tage</th><th>Art</th><th>Kommentar</th><th>Status</th><th>Aktionen</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let a of antraege" [class]="statusClass(a.status)">
+          <td>
+            <a [routerLink]="['/mitarbeiter', a.mitarbeiterId, 'bearbeiten']" [title]="mitarbeiterTooltip(a.mitarbeiterId)" class="link">
+              <code>{{ a.mitarbeiterId }}</code>
+            </a>
+          </td>
+          <td>{{ a.startdatum | date:'dd.MM.yyyy' }}</td>
+          <td>{{ a.enddatum   | date:'dd.MM.yyyy' }}</td>
+          <td>{{ calculateDays(a) }}</td>
+          <td>{{ a.urlaubsart }}</td>
+          <td>{{ a.kommentar || '–' }}</td>
+          <td><span class="status-badge" [class]="statusClass(a.status)">{{ statusLabel(a.status) }}</span></td>
+          <td class="actions">
+            <a [routerLink]="['/urlaubsantraege', a.id]" class="link">Details</a>
+            <a *ngIf="kannBearbeiten(a)" [routerLink]="['/urlaubsantraege', a.id, 'bearbeiten']" class="link">Bearbeiten</a>
+            <button *ngIf="kannLoeschen(a)" (click)="loeschen(a.id)" class="link btn-link-danger">Löschen</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+

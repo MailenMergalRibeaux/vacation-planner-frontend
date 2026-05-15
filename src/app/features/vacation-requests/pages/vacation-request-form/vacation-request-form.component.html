@@ -1,0 +1,101 @@
+<div class="container">
+  <div class="form-wrapper">
+    <h1>{{ antragId ? 'Antrag bearbeiten' : 'Neuer Urlaubsantrag' }}</h1>
+
+    <div *ngIf="zielMitarbeiterId" class="info-message">
+      <div class="info-title">Ausgewaehlter Mitarbeiter</div>
+      <ng-container *ngIf="zielMitarbeiter; else nurMitarbeiterId">
+        <strong>{{ zielMitarbeiter.vorname }} {{ zielMitarbeiter.nachname }}</strong>
+        <div>{{ zielMitarbeiter.email }}</div>
+        <div>ID: {{ zielMitarbeiter.id }}</div>
+      </ng-container>
+      <ng-template #nurMitarbeiterId>
+        <strong>{{ zielMitarbeiterId }}</strong>
+      </ng-template>
+    </div>
+
+    <div *ngIf="!antragId && !zielMitarbeiterId" class="warning-message">
+      Fuer neue Urlaubsantraege muss zuerst ein Mitarbeiter in der Mitarbeiterliste ausgewaehlt werden.
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="speichern()" class="form-container">
+      <!-- Error Message -->
+      <div *ngIf="fehler" class="error-message">
+        {{ fehler }}
+      </div>
+
+      <!-- Loading State -->
+      <div *ngIf="isLoading" class="loading">Laden…</div>
+
+      <!-- Form Content -->
+      <div *ngIf="!isLoading" class="form-group">
+        <!-- Start Date -->
+        <div class="form-field">
+          <label>Startdatum <span class="required">*</span></label>
+          <input
+            type="date"
+            formControlName="startdatum"
+            class="form-control"
+          />
+        </div>
+
+        <!-- End Date -->
+        <div class="form-field">
+          <label>Enddatum <span class="required">*</span></label>
+          <input
+            type="date"
+            formControlName="enddatum"
+            class="form-control"
+          />
+        </div>
+
+        <!-- Vacation Type -->
+        <div class="form-field">
+          <label>Urlaubsart <span class="required">*</span></label>
+          <select formControlName="urlaubsart" class="form-control">
+            <option *ngFor="let art of urlaubsarten" [value]="art">
+              {{ urlaubsartLabel[art] }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Calculated Days -->
+        <div class="form-field">
+          <label>Berechnete Tage</label>
+          <div class="calculated-days">{{ berechneTage }} Tage</div>
+        </div>
+
+        <!-- Comment -->
+        <div class="form-field">
+          <label>Kommentar</label>
+          <textarea
+            formControlName="kommentar"
+            class="form-control"
+            rows="3"
+            placeholder="Optional…"
+          ></textarea>
+        </div>
+
+        <!-- Actions -->
+        <div class="form-actions">
+          <button
+            type="submit"
+            class="btn-primary"
+            [disabled]="isSaving || !kannSpeichern"
+          >
+            {{ isSaving ? 'Speichern…' : (antragId ? 'Aenderungen speichern' : 'Antrag einreichen') }}
+          </button>
+          <button
+            type="button"
+            (click)="abbrechen()"
+            class="btn-secondary"
+            [disabled]="isSaving"
+          >
+            Abbrechen
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+

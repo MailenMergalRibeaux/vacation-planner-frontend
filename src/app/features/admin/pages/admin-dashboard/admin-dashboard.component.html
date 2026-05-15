@@ -1,0 +1,37 @@
+<div class="container">
+  <h1>Offene Genehmigungen</h1>
+
+  <div *ngIf="isLoading" class="loading">Laden…</div>
+
+  <div *ngIf="!isLoading && pendingAntraege.length === 0" class="empty-state">
+    <p>Keine offenen Urlaubsanträge.</p>
+  </div>
+
+  <div *ngIf="!isLoading && pendingAntraege.length > 0" class="requests-table-responsive">
+    <table class="requests-table">
+      <thead>
+        <tr>
+          <th>ID</th><th>Mitarbeiter-ID</th><th>Von</th><th>Bis</th><th>Tage</th><th>Art</th><th>Kommentar</th><th>Aktion</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let a of pendingAntraege">
+          <td>{{ a.id }}</td>
+          <td>
+            <a [routerLink]="['/mitarbeiter', a.mitarbeiterId, 'bearbeiten']" [title]="mitarbeiterTooltip(a.mitarbeiterId)" class="link">
+              <code>{{ a.mitarbeiterId }}</code>
+            </a>
+          </td>
+          <td>{{ a.startdatum | date:'dd.MM.yyyy' }}</td>
+          <td>{{ a.enddatum   | date:'dd.MM.yyyy' }}</td>
+          <td>{{ calculateDays(a) }}</td>
+          <td>{{ a.urlaubsart }}</td>
+          <td>{{ a.kommentar || '–' }}</td>
+          <td>
+            <a [routerLink]="['/urlaubsantraege', a.id]" class="link">Überprüfen</a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

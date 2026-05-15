@@ -1,0 +1,37 @@
+<div class="login-page">
+  <div class="login-card">
+    <div class="login-logo">
+      <span class="icon">🏖️</span>
+      <h1>Urlaubsplaner</h1>
+      <p class="subtitle">Bitte melden Sie sich an</p>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <div *ngIf="error" class="alert-error">{{ error }}</div>
+
+      <div class="form-field">
+        <label for="username">Benutzername</label>
+        <input id="username" type="text" formControlName="username" placeholder="admin" autocomplete="username" />
+        <div *ngIf="form.get('username')?.invalid && form.get('username')?.touched" class="field-error">
+          Pflichtfeld
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label for="password">Passwort</label>
+        <input id="password" type="password" formControlName="password" placeholder="••••••••" autocomplete="current-password" />
+        <div *ngIf="form.get('password')?.invalid && form.get('password')?.touched" class="field-error">
+          Pflichtfeld
+        </div>
+      </div>
+
+      <button type="submit" class="btn-login" [disabled]="isLoading || form.invalid">
+        <span *ngIf="isLoading">Anmelden…</span>
+        <span *ngIf="!isLoading">Anmelden</span>
+      </button>
+    </form>
+
+    <p class="hint">Standard-Zugangsdaten: <code>admin / admin123</code></p>
+  </div>
+</div>
+
