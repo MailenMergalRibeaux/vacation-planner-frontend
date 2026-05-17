@@ -1,6 +1,31 @@
 <div class="container">
   <div class="dashboard-wrapper">
-    <h1>Willkommen!</h1>
+    <h1>Willkommen, {{ currentMitarbeiterName }}!</h1>
+
+    <div class="stats-section" *ngIf="mitarbeiter">
+      <h2>Aktueller Mitarbeiter</h2>
+      <div class="stats-grid">
+        <div
+          class="stat-card employee-card"
+          [attr.title]="'ID: ' + mitarbeiter.id + ' | E-Mail: ' + mitarbeiter.email + ' | Bundesland: ' + currentMitarbeiterBundesland"
+        >
+          <div class="stat-value">{{ currentMitarbeiterName }}</div>
+          <div class="stat-label">Name</div>
+        </div>
+        <div
+          class="stat-card employee-card"
+          [attr.title]="'ID: ' + mitarbeiter.id + ' | E-Mail: ' + mitarbeiter.email + ' | Bundesland: ' + currentMitarbeiterBundesland"
+        >
+          <div class="stat-value">{{ currentMitarbeiterRolle }}</div>
+          <div class="stat-label">Rolle</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-section" *ngIf="!mitarbeiter && !isLoading">
+      <p class="info-hint">Kein aktueller Mitarbeiter gefunden. Bitte neu anmelden.</p>
+    </div>
+
     <!-- Urlaubskonto -->
     <div class="stats-section" *ngIf="urlaubskonto">
       <h2>Urlaubskonto {{ aktuellesJahr }}</h2>
@@ -29,15 +54,16 @@
 
     <!-- Antragsübersicht -->
     <div class="stats-section">
-      <h2>Meine Anträge</h2>
+      <h2>Meine Anträge {{ aktuellesJahr }}</h2>
+      <p class="info-hint" *ngIf="mitarbeiter">für {{ currentMitarbeiterName }}</p>
       <div class="stats-grid">
         <div class="stat-card status-beantragt">
-          <div class="stat-value">{{ beantragt }}</div>
-          <div class="stat-label">Beantragt</div>
+          <div class="stat-value">{{ beantragtGesamt }}</div>
+          <div class="stat-label">Von mir beantragt</div>
         </div>
         <div class="stat-card status-genehmigt">
-          <div class="stat-value">{{ genehmigt }}</div>
-          <div class="stat-label">Genehmigt</div>
+          <div class="stat-value">{{ genehmigtGesamt }}</div>
+          <div class="stat-label">Für mich genehmigt</div>
         </div>
       </div>
     </div>
@@ -45,17 +71,18 @@
     <!-- Letzte Anträge -->
     <div class="recent-section">
       <div class="section-header">
-        <h2>Letzte Urlaubsanträge</h2>
+        <h2>Meine letzten Urlaubsanträge {{ aktuellesJahr }}</h2>
         <a routerLink="/urlaubsantraege" class="link">Alle anzeigen</a>
       </div>
 
       <div *ngIf="isLoading" class="loading">Laden…</div>
 
-      <div *ngIf="!isLoading && antraege.length === 0" class="empty-state">
-        <p>Noch keine Urlaubsanträge. <a routerLink="/mitarbeiter">Mitarbeiter für ersten Antrag auswählen</a></p>
+
+      <div *ngIf="!isLoading && letzteAntraege.length === 0" class="empty-state">
+        <p>Du hast noch keine Urlaubsanträge. <a routerLink="/mitarbeiter">Mitarbeiter für ersten Antrag auswählen</a></p>
       </div>
 
-      <div *ngIf="!isLoading && antraege.length > 0" class="requests-table-responsive">
+      <div *ngIf="!isLoading && letzteAntraege.length > 0" class="requests-table-responsive">
         <table class="requests-table">
           <thead>
             <tr>
@@ -63,7 +90,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let antrag of antraege">
+            <tr *ngFor="let antrag of letzteAntraege">
               <td>{{ antrag.startdatum | date:'dd.MM.yyyy' }}</td>
               <td>{{ antrag.enddatum   | date:'dd.MM.yyyy' }}</td>
               <td>{{ calculateDays(antrag) }}</td>
@@ -77,4 +104,3 @@
     </div>
   </div>
 </div>
-

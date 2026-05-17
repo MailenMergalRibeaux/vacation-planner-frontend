@@ -20,6 +20,7 @@ export class VacationRequestListComponent implements OnInit {
   filterStatus: AntragStatus | '' = '';
   mitarbeiterId = '';
   mitarbeiterMap: Record<string, MitarbeiterResponse> = {};
+  private geladenFuerMitarbeiterId = '';
 
   readonly statusOptions: { value: AntragStatus | '', label: string }[] = [
     { value: '', label: 'Alle' },
@@ -37,9 +38,29 @@ export class VacationRequestListComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    const m = this.authService.getCurrentMitarbeiter();
-    this.mitarbeiterId = m?.id ?? '';
     this.ladeMitarbeiter();
+
+    const m = this.authService.getCurrentMitarbeiter();
+    if (m) {
+      this.setzeMitarbeiterUndLade(m.id);
+    } else if (this.authService.isAuthenticated()) {
+      this.authService.resolveCurrentMitarbeiter().subscribe({
+        next: (resolved) => {
+          if (resolved) this.setzeMitarbeiterUndLade(resolved.id);
+        }
+      });
+    }
+
+    this.authService.currentMitarbeiter$.subscribe((current: MitarbeiterResponse | null) => {
+      if (current && current.id !== this.mitarbeiterId) {
+        this.setzeMitarbeiterUndLade(current.id);
+      }
+    });
+  }
+
+  private setzeMitarbeiterUndLade(mitarbeiterId: string): void {
+    this.mitarbeiterId = mitarbeiterId;
+    if (this.geladenFuerMitarbeiterId === mitarbeiterId && this.antraege.length > 0) return;
     this.laden();
   }
 
@@ -59,6 +80,7 @@ export class VacationRequestListComponent implements OnInit {
 
   laden(): void {
     this.isLoading = true;
+    this.geladenFuerMitarbeiterId = this.mitarbeiterId;
     const status = this.filterStatus || undefined;
     // Alle Anträge des aktuellen Mitarbeiters laden
     this.antragService.findAll(this.mitarbeiterId || undefined, status).subscribe({

@@ -4,7 +4,18 @@ import { RouterModule } from '@angular/router';
 import { AuthService } from '@app/core/services/auth.service';
 import { UrlaubsAntragService } from '@app/core/services/urlaubsantrag.service';
 import { UrlaubskontoService } from '@app/core/services/urlaubskonto.service';
-import { MitarbeiterResponse, UrlaubsAntragResponse, UrlaubskontoResponse } from '@app/core/models/api.models';
+import {
+  BUNDESLAND_LABELS,
+  MitarbeiterResponse,
+  Rolle,
+  UrlaubsAntragResponse,
+  UrlaubskontoResponse
+} from '@app/core/models/api.models';
+
+const ROLLE_LABELS: Record<Rolle, string> = {
+  MITARBEITER: 'Mitarbeiter:in',
+  FUEHRUNGSKRAFT: 'Führungskraft'
+};
 
 @Component({
   selector: 'app-dashboard',
@@ -17,8 +28,11 @@ export class DashboardComponent implements OnInit {
   mitarbeiter: MitarbeiterResponse | null = null;
   urlaubskonto: UrlaubskontoResponse | null = null;
   antraege: UrlaubsAntragResponse[] = [];
+  allAntraege: UrlaubsAntragResponse[] = [];
+  letzteAntraege: UrlaubsAntragResponse[] = [];
   isLoading = false;
   aktuellesJahr = new Date().getFullYear();
+  private lastLoadedMitarbeiterId: string | null = null;
 
   constructor(
     private authService: AuthService,
@@ -27,37 +41,87 @@ export class DashboardComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.mitarbeiter = this.authService.getCurrentMitarbeiter();
     this.authService.currentMitarbeiter$.subscribe((m: MitarbeiterResponse | null) => {
       this.mitarbeiter = m;
-      if (m) this.loadDaten(m.id);
+      if (m && m.id !== this.lastLoadedMitarbeiterId) {
+        this.loadDaten(m.id);
+      }
     });
+
+    const currentM = this.authService.getCurrentMitarbeiter();
+    if (currentM) {
+      this.mitarbeiter = currentM;
+      this.loadDaten(currentM.id);
+    } else if (this.authService.isAuthenticated()) {
+      this.authService.resolveCurrentMitarbeiter().subscribe((m: MitarbeiterResponse | null) => {
+        this.mitarbeiter = m;
+        if (m) this.loadDaten(m.id);
+      });
+    }
   }
 
   loadDaten(mitarbeiterId: string): void {
+    this.lastLoadedMitarbeiterId = mitarbeiterId;
     this.isLoading = true;
 
-    // Anträge laden
+    // Anträge des aktuellen Mitarbeiters laden
     this.antragService.findAll(mitarbeiterId).subscribe({
       next: (antraege: UrlaubsAntragResponse[]) => {
-        this.antraege = antraege.slice(0, 5); // Nur die letzten 5
+        this.antraege = antraege;
+        this.allAntraege = antraege;
+        this.letzteAntraege = antraege
+          .sort((a, b) => new Date(b.startdatum).getTime() - new Date(a.startdatum).getTime())
+          .slice(0, 5);
         this.isLoading = false;
       },
-      error: () => { this.isLoading = false; }
+      error: () => {
+        this.antraege = [];
+        this.allAntraege = [];
+        this.letzteAntraege = [];
+        this.isLoading = false;
+      }
     });
 
-    // Urlaubskonto laden
     this.kontoService.findByMitarbeiterUndJahr(mitarbeiterId, this.aktuellesJahr).subscribe({
       next: (konto: UrlaubskontoResponse) => { this.urlaubskonto = konto; },
       error: () => { this.urlaubskonto = null; }
     });
   }
 
+  get currentMitarbeiterName(): string {
+    if (!this.mitarbeiter) return 'Unbekannt';
+    return `${this.mitarbeiter.vorname} ${this.mitarbeiter.nachname}`.trim();
+  }
+
+  get currentMitarbeiterRolle(): string {
+    if (!this.mitarbeiter) return '-';
+    return ROLLE_LABELS[this.mitarbeiter.rolle] ?? this.mitarbeiter.rolle;
+  }
+
+  get currentMitarbeiterBundesland(): string {
+    if (!this.mitarbeiter) return '-';
+    return BUNDESLAND_LABELS[this.mitarbeiter.bundesland] ?? this.mitarbeiter.bundesland;
+  }
+
   get beantragt(): number {
-    return this.antraege.filter(a => a.status === 'BEANTRAGT').length;
+    return this.allAntraege.filter(a => a.status === 'BEANTRAGT').length;
   }
   get genehmigt(): number {
-    return this.antraege.filter(a => a.status === 'GENEHMIGT').length;
+    return this.allAntraege.filter(a => a.status === 'GENEHMIGT').length;
+  }
+
+  get beantragtGesamt(): number {
+    return this.allAntraege.filter(a => {
+      const jahr = new Date(a.startdatum).getFullYear();
+      return a.status === 'BEANTRAGT' && jahr === this.aktuellesJahr;
+    }).length;
+  }
+
+  get genehmigtGesamt(): number {
+    return this.allAntraege.filter(a => {
+      const jahr = new Date(a.startdatum).getFullYear();
+      return a.status === 'GENEHMIGT' && jahr === this.aktuellesJahr;
+    }).length;
   }
 
   get progressPercent(): number {

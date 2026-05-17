@@ -13,7 +13,6 @@ import { MitarbeiterResponse, BUNDESLAND_LABELS } from '@app/core/models/api.mod
 })
 export class UserListComponent implements OnInit {
   mitarbeiter: MitarbeiterResponse[] = [];
-  mitarbeiterMap: Record<string, MitarbeiterResponse> = {};
   isLoading = false;
   readonly bundeslandLabels = BUNDESLAND_LABELS;
 
@@ -26,10 +25,6 @@ export class UserListComponent implements OnInit {
     this.mitarbeiterService.findAll().subscribe({
       next: (data: MitarbeiterResponse[]) => {
         this.mitarbeiter = data;
-        this.mitarbeiterMap = data.reduce((acc: Record<string, MitarbeiterResponse>, m: MitarbeiterResponse) => {
-          acc[m.id] = m;
-          return acc;
-        }, {});
         this.isLoading = false;
       },
       error: () => { this.isLoading = false; }
@@ -46,13 +41,5 @@ export class UserListComponent implements OnInit {
 
   mitarbeiterTooltip(m: MitarbeiterResponse): string {
     return `${m.vorname} ${m.nachname} (${m.email})`;
-  }
-
-  vorgesetzterTooltip(vorgesetzterId?: string | null): string {
-    if (!vorgesetzterId) return 'Kein Vorgesetzter';
-    const vorgesetzter = this.mitarbeiterMap[vorgesetzterId];
-    return vorgesetzter
-      ? `${vorgesetzter.vorname} ${vorgesetzter.nachname} (${vorgesetzter.email})`
-      : vorgesetzterId;
   }
 }
