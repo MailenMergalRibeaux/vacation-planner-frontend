@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { forkJoin, Observable, of } from 'rxjs';
 import { AuthService } from '@app/core/services/auth.service';
 import { MitarbeiterService } from '@app/core/services/mitarbeiter.service';
 import { UrlaubsAntragService } from '@app/core/services/urlaubsantrag.service';
@@ -18,8 +19,10 @@ export class VacationRequestListComponent implements OnInit {
   antraege: UrlaubsAntragResponse[] = [];
   isLoading = false;
   filterStatus: AntragStatus | '' = '';
-  mitarbeiterId = '';
+  mitarbeiter: MitarbeiterResponse | null = null;
   mitarbeiterMap: Record<string, MitarbeiterResponse> = {};
+  istFuehrungskraft = false;
+  private teamIds = new Set<string>();
   private geladenFuerMitarbeiterId = '';
 
   readonly statusOptions: { value: AntragStatus | '', label: string }[] = [
@@ -38,55 +41,77 @@ export class VacationRequestListComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.ladeMitarbeiter();
-
     const m = this.authService.getCurrentMitarbeiter();
     if (m) {
-      this.setzeMitarbeiterUndLade(m.id);
+      this.uebernehmeMitarbeiter(m);
     } else if (this.authService.isAuthenticated()) {
       this.authService.resolveCurrentMitarbeiter().subscribe({
-        next: (resolved) => {
-          if (resolved) this.setzeMitarbeiterUndLade(resolved.id);
-        }
+        next: (resolved) => { if (resolved) this.uebernehmeMitarbeiter(resolved); }
       });
     }
 
     this.authService.currentMitarbeiter$.subscribe((current: MitarbeiterResponse | null) => {
-      if (current && current.id !== this.mitarbeiterId) {
-        this.setzeMitarbeiterUndLade(current.id);
+      if (current && current.id !== this.mitarbeiter?.id) {
+        this.uebernehmeMitarbeiter(current);
       }
     });
   }
 
-  private setzeMitarbeiterUndLade(mitarbeiterId: string): void {
-    this.mitarbeiterId = mitarbeiterId;
-    if (this.geladenFuerMitarbeiterId === mitarbeiterId && this.antraege.length > 0) return;
-    this.laden();
-  }
-
-  ladeMitarbeiter(): void {
-    this.mitarbeiterService.findAll().subscribe({
-      next: (data: MitarbeiterResponse[]) => {
-        this.mitarbeiterMap = data.reduce((acc: Record<string, MitarbeiterResponse>, mitarbeiter: MitarbeiterResponse) => {
-          acc[mitarbeiter.id] = mitarbeiter;
-          return acc;
-        }, {});
-      },
-      error: () => {
-        this.mitarbeiterMap = {};
-      }
-    });
+  private uebernehmeMitarbeiter(m: MitarbeiterResponse): void {
+    this.mitarbeiter = m;
+    this.istFuehrungskraft = m.rolle === 'FUEHRUNGSKRAFT';
+    if (this.geladenFuerMitarbeiterId !== m.id) {
+      this.laden();
+    }
   }
 
   laden(): void {
+    if (!this.mitarbeiter) return;
+    const aktueller = this.mitarbeiter;
     this.isLoading = true;
-    this.geladenFuerMitarbeiterId = this.mitarbeiterId;
+    this.geladenFuerMitarbeiterId = aktueller.id;
     const status = this.filterStatus || undefined;
-    // Alle Anträge des aktuellen Mitarbeiters laden
-    this.antragService.findAll(this.mitarbeiterId || undefined, status).subscribe({
-      next: (data: UrlaubsAntragResponse[]) => { this.antraege = data; this.isLoading = false; },
-      error: () => { this.isLoading = false; }
+
+    const stream$: Observable<{ antraege: UrlaubsAntragResponse[]; team: MitarbeiterResponse[] }> =
+      this.istFuehrungskraft
+        ? forkJoin({
+            antraege: this.antragService.findAll(undefined, status),
+            team: this.mitarbeiterService.findAll(aktueller.id)
+          })
+        : forkJoin({
+            antraege: this.antragService.findAll(aktueller.id, status),
+            team: of<MitarbeiterResponse[]>([aktueller])
+          });
+
+    stream$.subscribe({
+      next: ({ antraege, team }) => {
+        this.mitarbeiterMap = team.reduce((acc, mitarbeiter) => {
+          acc[mitarbeiter.id] = mitarbeiter;
+          return acc;
+        }, {} as Record<string, MitarbeiterResponse>);
+        this.teamIds = new Set(team.map(t => t.id));
+
+        this.antraege = this.istFuehrungskraft
+          ? antraege.filter(a => this.teamIds.has(a.mitarbeiterId))
+          : antraege;
+
+        this.isLoading = false;
+      },
+      error: () => {
+        this.antraege = [];
+        this.isLoading = false;
+      }
     });
+  }
+
+  get listenTitel(): string {
+    return this.istFuehrungskraft ? 'Urlaubsanträge meiner Mitarbeiter' : 'Meine Urlaubsanträge';
+  }
+
+  get leerMeldung(): string {
+    return this.istFuehrungskraft
+      ? 'Es liegen aktuell keine Urlaubsanträge deines Teams vor.'
+      : 'Du hast aktuell keine Urlaubsanträge.';
   }
 
   neuerAntrag(): void { this.router.navigate(['/mitarbeiter']); }
@@ -117,9 +142,12 @@ export class VacationRequestListComponent implements OnInit {
   }
 
   mitarbeiterTooltip(mitarbeiterId: string): string {
-    const mitarbeiter = this.mitarbeiterMap[mitarbeiterId];
-    return mitarbeiter
-      ? `${mitarbeiter.vorname} ${mitarbeiter.nachname} (${mitarbeiter.email})`
-      : mitarbeiterId;
+    const m = this.mitarbeiterMap[mitarbeiterId];
+    return m ? `${m.vorname} ${m.nachname} (${m.email})` : mitarbeiterId;
+  }
+
+  mitarbeiterLabel(mitarbeiterId: string): string {
+    const m = this.mitarbeiterMap[mitarbeiterId];
+    return m ? `${m.vorname} ${m.nachname}` : mitarbeiterId;
   }
 }

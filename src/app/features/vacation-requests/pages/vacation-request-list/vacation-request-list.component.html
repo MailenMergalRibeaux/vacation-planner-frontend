@@ -1,6 +1,6 @@
 <div class="container">
   <div class="page-header">
-    <h1>Urlaubsanträge</h1>
+    <h1>{{ listenTitel }}</h1>
     <button (click)="neuerAntrag()" class="btn-primary">+ Mitarbeiter für Antrag wählen</button>
   </div>
 
@@ -18,8 +18,8 @@
 
   <!-- Empty State -->
   <div *ngIf="!isLoading && antraege.length === 0" class="empty-state">
-    <p>Keine Urlaubsanträge gefunden.</p>
-    <button (click)="neuerAntrag()" class="btn-primary">Mitarbeiter für ersten Antrag wählen</button>
+    <p>{{ leerMeldung }}</p>
+    <button *ngIf="!istFuehrungskraft" (click)="neuerAntrag()" class="btn-primary">Mitarbeiter für ersten Antrag wählen</button>
   </div>
 
   <!-- Requests Table -->
@@ -27,14 +27,14 @@
     <table class="requests-table">
       <thead>
         <tr>
-          <th>Mitarbeiter-ID</th><th>Von</th><th>Bis</th><th>Tage</th><th>Art</th><th>Kommentar</th><th>Status</th><th>Aktionen</th>
+          <th>Mitarbeiter</th><th>Von</th><th>Bis</th><th>Tage</th><th>Art</th><th>Kommentar</th><th>Status</th><th>Aktionen</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let a of antraege" [class]="statusClass(a.status)">
           <td>
             <a [routerLink]="['/mitarbeiter', a.mitarbeiterId, 'bearbeiten']" [title]="mitarbeiterTooltip(a.mitarbeiterId)" class="link">
-              <code>{{ a.mitarbeiterId }}</code>
+              {{ mitarbeiterLabel(a.mitarbeiterId) }}
             </a>
           </td>
           <td>{{ a.startdatum | date:'dd.MM.yyyy' }}</td>

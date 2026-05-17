@@ -79,7 +79,16 @@
 
 
       <div *ngIf="!isLoading && letzteAntraege.length === 0" class="empty-state">
-        <p>Du hast noch keine Urlaubsanträge. <a routerLink="/mitarbeiter">Mitarbeiter für ersten Antrag auswählen</a></p>
+        <p *ngIf="mitarbeiter; else keinMitarbeiter">
+          Du hast noch keine Urlaubsanträge.
+          <a [routerLink]="['/urlaubsantraege', 'neu']"
+             [queryParams]="{ mitarbeiterId: mitarbeiter.id }">
+            Jetzt ersten Antrag stellen
+          </a>
+        </p>
+        <ng-template #keinMitarbeiter>
+          <p>Du hast noch keine Urlaubsanträge.</p>
+        </ng-template>
       </div>
 
       <div *ngIf="!isLoading && letzteAntraege.length > 0" class="requests-table-responsive">
