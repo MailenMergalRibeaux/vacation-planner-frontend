@@ -6,9 +6,10 @@ Ein modernes Angular 18 Frontend für einen Spring Boot-basierten Urlaubsplaner.
 
 - ✅ **Dashboard** - Übersicht über Urlaubstage und ausstehende Anträge
 - ✅ **Urlaubsanträge** - Anträge erstellen, bearbeiten und verwalten
-- ✅ **Admin-Panel** - Genehmigung und Verwaltung von Urlaubsanträgen
-- ✅ **Benutzerverwaltung** - Übersicht aller Benutzer
-- ✅ **Authentifizierung** - Token-basierte Authentifizierung mit Auth Interceptor
+- ✅ **Admin-Panel** - Genehmigung und Verwaltung von Urlaubsanträgen (nur für Führungskräfte)
+- ✅ **Benutzerverwaltung** - Übersicht aller Mitarbeitenden
+- ✅ **Self-Service-Registrierung für Führungskräfte** - mit Einladungscode-Schutz
+- ✅ **Authentifizierung** - HTTP Basic Auth via `/api/auth/login`, Rollen `MITARBEITER` / `FUEHRUNGSKRAFT`
 - ✅ **Responsive Design** - Optimiert für Desktop und Mobile
 - ✅ **SCSS Styling** - Modern und wartbar
 
@@ -17,17 +18,18 @@ Ein modernes Angular 18 Frontend für einen Spring Boot-basierten Urlaubsplaner.
 ```
 src/app/
 ├── core/                 # Services, Interceptors, Guards
-│   ├── services/        # Auth, Vacation Request, User Services
-│   ├── interceptors/    # Auth Token Interceptor
-│   └── guards/          # Auth und Admin Guards
-├── shared/              # Gemeinsame Komponenten
-│   └── components/      # Header, Footer
+│   ├── services/        # AuthService, Mitarbeiter-, Urlaubsantrags-, Urlaubskonto-Service
+│   ├── interceptors/    # auth.interceptor (HTTP Basic Header)
+│   └── guards/          # authGuard, adminGuard (FUEHRUNGSKRAFT)
+├── shared/              # Gemeinsame Komponenten (Layout, Header, Footer)
 ├── features/            # Feature Modules
-│   ├── dashboard/       # Dashboard Feature
-│   ├── vacation-requests/  # Urlaubsanträge Feature
-│   ├── admin/          # Admin Panel
-│   └── users/          # Benutzerverwaltung
-└── app.component.ts    # Root Component
+│   ├── login/           # Login (E-Mail + Passwort)
+│   ├── register/        # Self-Service-Registrierung für Führungskräfte
+│   ├── dashboard/       # Dashboard
+│   ├── vacation-requests/ # Urlaubsanträge
+│   ├── admin/           # Admin Panel (geschützt durch adminGuard)
+│   └── users/           # Mitarbeiterverwaltung
+└── app.component.ts     # Root Component
 ```
 
 ## Voraussetzungen
@@ -59,17 +61,54 @@ Die Anwendung läuft dann unter `http://localhost:4200/`.
 
 ## API Integration
 
-Das Frontend verbindet sich mit einem Spring Boot Backend auf `http://localhost:8080/api`.
+Das Frontend verbindet sich mit dem Spring-Boot-Backend `urlaubsplaner` auf `http://localhost:8081/api`.
+Lokal wird ein Angular-Proxy verwendet, sodass relative Pfade (`/api/...`) durchgereicht werden.
 
-### Wichtige Endpoints:
+### Authentifizierung
 
-- `POST /api/auth/login` - Benutzer-Login
-- `GET /api/vacation-requests` - Alle Urlaubsanträge abrufen
-- `POST /api/vacation-requests` - Neue Anfrage erstellen
-- `GET /api/vacation-requests/{id}` - Anfrage-Details
-- `PUT /api/vacation-requests/{id}/approve` - Anfrage genehmigen
-- `PUT /api/vacation-requests/{id}/reject` - Anfrage ablehnen
-- `GET /api/users` - Alle Benutzer auflisten
+Das Backend verwendet **HTTP Basic Authentication** (kein JWT, kein Refresh-Token).
+
+- `POST /api/auth/login` — Login per `{ email, passwort }`. Antwort ist das vollständige `MitarbeiterResponse`-Profil inkl. `rolle`.
+- `POST /api/auth/register` — Self-Service-Registrierung **nur für Führungskräfte** (siehe Abschnitt _Registrierung_).
+- Folgeaufrufe werden vom `auth.interceptor` automatisch mit `Authorization: Basic base64(email:passwort)` versehen.
+
+### Fachliche Endpunkte (Auswahl)
+
+- `GET /api/mitarbeiter` — Alle Mitarbeitenden (nur Führungskraft)
+- `POST /api/mitarbeiter` — Neuen Mitarbeitenden anlegen (nur Führungskraft)
+- `GET /api/urlaubsantraege` — Urlaubsanträge abrufen
+- `POST /api/urlaubsantraege` — Neuen Antrag stellen
+- `PATCH /api/urlaubsantraege/{id}/status` — Status (genehmigen/ablehnen/stornieren) ändern
+- `GET /api/urlaubskonto/...` — Urlaubskonto-Endpunkte
+
+## Registrierung
+
+Über `/register` können sich neue **Führungskräfte** selbst registrieren.
+
+- Pflichtfelder: Mitarbeiter-ID, Vorname, Nachname, E-Mail, Passwort (min. 8 Zeichen), Bundesland, **Einladungscode**.
+- Optional: Vorgesetzter (Mitarbeiter-ID).
+- Der Einladungscode wird im Backend über die Property `app.fuehrungskraft.invite-code` bzw. das ENV `APP_FUEHRUNGSKRAFT_INVITE_CODE` gesetzt — ohne gültigen Code liefert das Backend `403`.
+- Nach erfolgreicher Registrierung wird die Sitzung automatisch initialisiert (Auto-Login → `/dashboard`).
+
+**Mitarbeitende** registrieren sich **nicht** selbst. Sie werden nach erstmaliger Anmeldung der Führungskraft im Bereich `/mitarbeiter` per `POST /api/mitarbeiter` angelegt.
+
+## Rollenmodell
+
+| Rolle | Berechtigungen |
+|---|---|
+| `MITARBEITER` | Eigene Anträge stellen, eigenes Urlaubskonto sehen |
+| `FUEHRUNGSKRAFT` | Mitarbeiterverwaltung, Genehmigung/Ablehnung von Anträgen, Admin-Bereich |
+
+Der `adminGuard` schützt `/admin` und prüft `rolle === 'FUEHRUNGSKRAFT'`.
+
+## Standard-Zugangsdaten (lokal)
+
+Beim ersten Backend-Start wird eine initiale Führungskraft angelegt (`FuehrungskraftInitializer`).
+Defaults aus `docker-compose.yml`:
+
+- E-Mail: `fuehrungskraft@local` (überschreibbar via `APP_FUEHRUNGSKRAFT_EMAIL`)
+- Passwort: `Initial1234` (überschreibbar via `APP_FUEHRUNGSKRAFT_PASSWORD`)
+- Einladungscode für `/register`: `CHANGE-ME-INVITE-2026` (überschreibbar via `APP_FUEHRUNGSKRAFT_INVITE_CODE`)
 
 ## Komponenten-Übersicht
 
@@ -101,19 +140,22 @@ Das Projekt verwendet SCSS mit einer modernen, responsive Design-Sprache:
 
 ## Authentication
 
-Das Frontend verwendet einen HTTP Interceptor zur automatischen Anhängung von JWT-Tokens an alle Requests:
+`src/app/core/interceptors/auth.interceptor.ts` hängt den HTTP-Basic-Header automatisch an jeden Request, sobald Credentials in `localStorage` liegen:
 
 ```typescript
-// Token wird automatisch aus localStorage geholt
-Authorization: Bearer <JWT_TOKEN>
+Authorization: Basic <base64(email:passwort)>
 ```
+
+Die Credentials werden beim erfolgreichen Login (`POST /api/auth/login`) bzw. nach erfolgreicher Registrierung (`POST /api/auth/register`) gespeichert und beim Logout wieder entfernt.
 
 ## Umgebungskonfiguration
 
-Ändern Sie die API-Basis-URL in `src/app/core/services/`:
+API-Basis-URL pro Build-Konfiguration in `src/environments/`:
 
 ```typescript
-private apiUrl = 'http://localhost:8080/api';
+// environment.ts (Dev)  → Proxy auf http://localhost:8081/api
+// environment.prod.ts   → /api (gleicher Host wie Backend-Deployment)
+export const environment = { production: false, apiUrl: '/api' };
 ```
 
 ## Testing
@@ -153,15 +195,16 @@ npx http-server dist/vacation-planner -p 4200
 ## Struktur der Routes
 
 ```
+/login                 → Login (E-Mail + Passwort)
+/register              → Self-Service-Registrierung Führungskraft
 /                      → Dashboard (wenn authentifiziert)
 /dashboard             → Dashboard
-/vacation-requests     → Liste Urlaubsanträge
-/vacation-requests/new → Neue Anfrage erstellen
-/vacation-requests/:id → Anfrage-Details
-/vacation-requests/:id/edit → Anfrage bearbeiten
-/admin                 → Admin Panel
+/urlaubsantraege       → Liste Urlaubsanträge
+/urlaubsantraege/new   → Neuer Antrag
+/urlaubsantraege/:id   → Antragsdetails
+/mitarbeiter           → Mitarbeiterverwaltung
+/admin                 → Admin Panel (adminGuard → nur FUEHRUNGSKRAFT)
 /admin/approvals       → Ausstehende Genehmigungen
-/users                 → Benutzerliste
 ```
 
 ## TypeScript Konfiguration

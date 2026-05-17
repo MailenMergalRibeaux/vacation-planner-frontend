@@ -1,0 +1,100 @@
+<div class="register-page">
+  <div class="register-card">
+    <div class="register-logo">
+      <span class="icon">🏖️</span>
+      <h1>Als Führungskraft registrieren</h1>
+      <p class="subtitle">Erstelle dein Führungskraft-Konto für den Urlaubsplaner</p>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+      <div *ngIf="error" class="alert-error">{{ error }}</div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label for="vorname">Vorname</label>
+          <input id="vorname" type="text" formControlName="vorname" autocomplete="given-name" />
+          <div *ngIf="form.get('vorname')?.touched && form.get('vorname')?.invalid" class="field-error">
+            Mindestens 2 Zeichen.
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label for="nachname">Nachname</label>
+          <input id="nachname" type="text" formControlName="nachname" autocomplete="family-name" />
+          <div *ngIf="form.get('nachname')?.touched && form.get('nachname')?.invalid" class="field-error">
+            Mindestens 2 Zeichen.
+          </div>
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label for="id">Mitarbeiter-ID</label>
+        <input id="id" type="text" formControlName="id" placeholder="z. B. FK-007" />
+        <div *ngIf="form.get('id')?.touched && form.get('id')?.invalid" class="field-error">
+          Mindestens 2 Zeichen.
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label for="email">E-Mail</label>
+        <input id="email" type="email" formControlName="email" autocomplete="email" placeholder="name@firma.de" />
+        <div *ngIf="form.get('email')?.touched && form.get('email')?.invalid" class="field-error">
+          <span *ngIf="form.get('email')?.errors?.['required']">Pflichtfeld</span>
+          <span *ngIf="form.get('email')?.errors?.['email']">Bitte eine gültige E-Mail-Adresse eingeben.</span>
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label for="bundesland">Bundesland</label>
+        <select id="bundesland" formControlName="bundesland">
+          <option value="" disabled>Bitte wählen…</option>
+          <option *ngFor="let bl of bundeslaender" [value]="bl">{{ bundeslandLabels[bl] }}</option>
+        </select>
+        <div *ngIf="form.get('bundesland')?.touched && form.get('bundesland')?.invalid" class="field-error">
+          Pflichtfeld
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label for="vorgesetzterMitarbeiterId">Vorgesetzter (optional)</label>
+        <input id="vorgesetzterMitarbeiterId" type="text" formControlName="vorgesetzterMitarbeiterId" placeholder="ID der vorgesetzten Person" />
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label for="passwort">Passwort</label>
+          <input id="passwort" type="password" formControlName="passwort" autocomplete="new-password" placeholder="mind. 8 Zeichen" />
+          <div *ngIf="form.get('passwort')?.touched && form.get('passwort')?.invalid" class="field-error">
+            <span *ngIf="form.get('passwort')?.errors?.['required']">Pflichtfeld</span>
+            <span *ngIf="form.get('passwort')?.errors?.['minlength']">Mindestens 8 Zeichen.</span>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label for="passwortBestaetigung">Passwort bestätigen</label>
+          <input id="passwortBestaetigung" type="password" formControlName="passwortBestaetigung" autocomplete="new-password" />
+          <div *ngIf="passwortMismatch" class="field-error">
+            Die Passwörter stimmen nicht überein.
+          </div>
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label for="inviteCode">Einladungscode</label>
+        <input id="inviteCode" type="text" formControlName="inviteCode" placeholder="Erhältst du vom Administrator" />
+        <div *ngIf="form.get('inviteCode')?.touched && form.get('inviteCode')?.invalid" class="field-error">
+          Pflichtfeld
+        </div>
+      </div>
+
+      <button type="submit" class="btn-register" [disabled]="isLoading || form.invalid">
+        <span *ngIf="isLoading">Registrieren…</span>
+        <span *ngIf="!isLoading">Registrieren</span>
+      </button>
+    </form>
+
+    <p class="hint">
+      Bereits registriert? <a routerLink="/login">Zum Login →</a>
+    </p>
+  </div>
+</div>

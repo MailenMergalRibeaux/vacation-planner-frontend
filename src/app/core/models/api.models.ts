@@ -18,6 +18,13 @@ export type Bundesland =
   | 'HE' | 'MV' | 'NI' | 'NW' | 'RP' | 'SL'
   | 'SN' | 'ST' | 'SH' | 'TH';
 
+export const BUNDESLAENDER: Bundesland[] = [
+  'BA', 'BY', 'BE', 'BB', 'HB', 'HH', 'HE', 'MV',
+  'NI', 'NW', 'RP', 'SL', 'SN', 'ST', 'SH', 'TH'
+];
+
+export type Rolle = 'MITARBEITER' | 'FUEHRUNGSKRAFT';
+
 export const BUNDESLAND_LABELS: Record<Bundesland, string> = {
   BA: 'Baden-Württemberg', BY: 'Bayern', BE: 'Berlin', BB: 'Brandenburg',
   HB: 'Bremen', HH: 'Hamburg', HE: 'Hessen', MV: 'Mecklenburg-Vorpommern',
@@ -44,6 +51,7 @@ export interface MitarbeiterResponse {
   vorname: string;
   nachname: string;
   email: string;
+  rolle: Rolle;
   bundesland: Bundesland;
   vorgesetzterMitarbeiterId?: string | null;
 }
@@ -117,5 +125,23 @@ export interface FeiertagResponse {
 export interface BasicCredentials {
   username: string;
   password: string;
+}
+
+/** Entspricht LoginRequest (POST /api/auth/login). */
+export interface LoginRequest {
+  email: string;
+  passwort: string;
+}
+
+/** Entspricht RegisterFuehrungskraftRequest (POST /api/auth/register). */
+export interface RegisterFuehrungskraftRequest {
+  id: string;
+  vorname: string;
+  nachname: string;
+  email: string;
+  passwort: string;
+  bundesland: Bundesland;
+  vorgesetzterMitarbeiterId?: string | null;
+  inviteCode: string;
 }
 

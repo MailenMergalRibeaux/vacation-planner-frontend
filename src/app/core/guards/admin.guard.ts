@@ -6,13 +6,10 @@ export const adminGuard: CanActivateFn = () => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
-  const currentUser = authService.getCurrentUser();
-  if (currentUser && currentUser.role === 'ADMIN') {
+  if (authService.hasRole('FUEHRUNGSKRAFT')) {
     return true;
   }
 
-  // Redirect to dashboard if not admin
   router.navigate(['/dashboard']);
   return false;
 };
-
