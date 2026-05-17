@@ -1,7 +1,7 @@
 <div class="container">
   <div class="page-header">
     <h1>{{ listenTitel }}</h1>
-    <button (click)="neuerAntrag()" class="btn-primary">+ Mitarbeiter für Antrag wählen</button>
+    <button (click)="neuerAntrag()" class="btn-primary">{{ neuerAntragLabel }}</button>
   </div>
 
   <!-- Filters -->
@@ -19,7 +19,7 @@
   <!-- Empty State -->
   <div *ngIf="!isLoading && antraege.length === 0" class="empty-state">
     <p>{{ leerMeldung }}</p>
-    <button *ngIf="!istFuehrungskraft" (click)="neuerAntrag()" class="btn-primary">Mitarbeiter für ersten Antrag wählen</button>
+    <button *ngIf="!istFuehrungskraft" (click)="neuerAntrag()" class="btn-primary">Antrag stellen</button>
   </div>
 
   <!-- Requests Table -->

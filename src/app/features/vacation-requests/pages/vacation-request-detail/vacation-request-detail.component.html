@@ -75,6 +75,10 @@
         </div>
       </div>
 
+      <div *ngIf="wirdBearbeitet && antrag.status === 'BEANTRAGT'" class="info-hint">
+        Dieser Antrag wird gerade bearbeitet. Genehmigen, Ablehnen und Stornieren sind währenddessen gesperrt.
+      </div>
+
       <!-- Actions -->
       <div class="detail-actions">
         <a *ngIf="kannBearbeiten()" [routerLink]="['/urlaubsantraege', antrag.id, 'bearbeiten']" class="btn-primary">Bearbeiten</a>

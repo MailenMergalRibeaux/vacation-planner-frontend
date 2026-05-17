@@ -114,7 +114,21 @@ export class VacationRequestListComponent implements OnInit {
       : 'Du hast aktuell keine Urlaubsanträge.';
   }
 
-  neuerAntrag(): void { this.router.navigate(['/mitarbeiter']); }
+  neuerAntrag(): void {
+    if (this.istFuehrungskraft) {
+      this.router.navigate(['/mitarbeiter']);
+      return;
+    }
+    if (this.mitarbeiter) {
+      this.router.navigate(['/urlaubsantraege', 'neu'], {
+        queryParams: { mitarbeiterId: this.mitarbeiter.id }
+      });
+    }
+  }
+
+  get neuerAntragLabel(): string {
+    return this.istFuehrungskraft ? '+ Mitarbeiter für Antrag wählen' : 'Antrag stellen';
+  }
 
   loeschen(id: number): void {
     if (!confirm('Antrag wirklich löschen?')) return;

@@ -1,8 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { AuthService } from '@app/core/services/auth.service';
+import { BearbeitungsLockService } from '@app/core/services/bearbeitungs-lock.service';
 import { FlashMessageService } from '@app/core/services/flash-message.service';
 import { UrlaubsAntragService } from '@app/core/services/urlaubsantrag.service';
 import { UrlaubskontoService } from '@app/core/services/urlaubskonto.service';
@@ -15,22 +17,29 @@ import { UrlaubskontoRequest, UrlaubsAntragResponse } from '@app/core/models/api
   templateUrl: './vacation-request-detail.component.html',
   styleUrls: ['./vacation-request-detail.component.scss']
 })
-export class VacationRequestDetailComponent implements OnInit {
+export class VacationRequestDetailComponent implements OnInit, OnDestroy {
   antrag: UrlaubsAntragResponse | null = null;
   isLoading = false;
   isSubmitting = false;
   isCreatingUrlaubskonto = false;
   fehler = '';
   fehlendesUrlaubskonto: { mitarbeiterId: string; jahr: number } | null = null;
+  wirdBearbeitet = false;
+  private lockSubscription?: Subscription;
 
   constructor(
     private antragService: UrlaubsAntragService,
     private flashMessageService: FlashMessageService,
     private urlaubskontoService: UrlaubskontoService,
     private authService: AuthService,
+    private lockService: BearbeitungsLockService,
     private route: ActivatedRoute,
     private router: Router
   ) {}
+
+  ngOnDestroy(): void {
+    this.lockSubscription?.unsubscribe();
+  }
 
   ngOnInit(): void {
     this.route.paramMap.subscribe(p => {
@@ -46,8 +55,16 @@ export class VacationRequestDetailComponent implements OnInit {
         this.antrag = a;
         this.fehlendesUrlaubskonto = null;
         this.isLoading = false;
+        this.beobachteBearbeitungsLock(a.id);
       },
       error: () => { this.fehler = 'Antrag nicht gefunden.'; this.isLoading = false; }
+    });
+  }
+
+  private beobachteBearbeitungsLock(id: number): void {
+    this.lockSubscription?.unsubscribe();
+    this.lockSubscription = this.lockService.isLocked$(id).subscribe(locked => {
+      this.wirdBearbeitet = locked;
     });
   }
 
@@ -160,10 +177,22 @@ export class VacationRequestDetailComponent implements OnInit {
     return m[s] ?? '';
   }
 
-  // Nur Vorgesetzte dürfen genehmigen/ablehnen (vereinfacht: immer true bei admin)
-  kannGenehmigen(): boolean { return this.antrag?.status === 'BEANTRAGT'; }
-  kannAblehnen():   boolean { return this.antrag?.status === 'BEANTRAGT'; }
-  kannStornieren(): boolean { return this.antrag?.status === 'BEANTRAGT'; }
+  // Genehmigen/Ablehnen ist Führungskräften vorbehalten.
+  // Solange der Antrag in einer Bearbeitungs-Form geöffnet ist (auch in einem anderen Tab),
+  // sind Genehmigen/Ablehnen/Stornieren blockiert.
+  kannGenehmigen(): boolean {
+    return this.antrag?.status === 'BEANTRAGT'
+      && this.authService.hasRole('FUEHRUNGSKRAFT')
+      && !this.wirdBearbeitet;
+  }
+  kannAblehnen(): boolean {
+    return this.antrag?.status === 'BEANTRAGT'
+      && this.authService.hasRole('FUEHRUNGSKRAFT')
+      && !this.wirdBearbeitet;
+  }
+  kannStornieren(): boolean {
+    return this.antrag?.status === 'BEANTRAGT' && !this.wirdBearbeitet;
+  }
   kannBearbeiten(): boolean { return this.antrag?.status === 'BEANTRAGT'; }
 
   zurueck(): void { this.router.navigate(['/urlaubsantraege']); }

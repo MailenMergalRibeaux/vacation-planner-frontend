@@ -1,8 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { MitarbeiterResponse, UrlaubsAntragRequest, UrlaubsAntragResponse, Urlaubsart } from '@app/core/models/api.models';
+import { AntragStatus, MitarbeiterResponse, UrlaubsAntragRequest, UrlaubsAntragResponse, Urlaubsart } from '@app/core/models/api.models';
+import { BearbeitungsLockService } from '@app/core/services/bearbeitungs-lock.service';
 import { FlashMessageService } from '@app/core/services/flash-message.service';
 import { MitarbeiterService } from '@app/core/services/mitarbeiter.service';
 import { UrlaubsAntragService } from '@app/core/services/urlaubsantrag.service';
@@ -14,7 +15,7 @@ import { UrlaubsAntragService } from '@app/core/services/urlaubsantrag.service';
   templateUrl: './vacation-request-form.component.html',
   styleUrls: ['./vacation-request-form.component.scss']
 })
-export class VacationRequestFormComponent implements OnInit {
+export class VacationRequestFormComponent implements OnInit, OnDestroy {
   form = this.fb.group({
     startdatum: ['', Validators.required],
     enddatum:   ['', Validators.required],
@@ -26,6 +27,7 @@ export class VacationRequestFormComponent implements OnInit {
   isSaving  = false;
   fehler = '';
   antragId: number | null = null;
+  antragStatus: AntragStatus | null = null;
   zielMitarbeiterId = '';
   zielMitarbeiter: MitarbeiterResponse | null = null;
 
@@ -45,36 +47,47 @@ export class VacationRequestFormComponent implements OnInit {
     private flashMessageService: FlashMessageService,
     private mitarbeiterService: MitarbeiterService,
     private antragService: UrlaubsAntragService,
+    private lockService: BearbeitungsLockService,
     private route: ActivatedRoute,
     private router: Router
   ) {}
 
+  ngOnDestroy(): void {
+    if (this.antragId !== null) {
+      this.lockService.unlock(this.antragId);
+    }
+  }
+
   ngOnInit(): void {
+    // Bearbeitungs-ID synchron aus dem Snapshot lesen, bevor queryParamMap feuert –
+    // sonst würde sonst kurzzeitig fälschlich "Bitte aus Mitarbeiterliste starten" erscheinen.
+    const idAusUrl = this.route.snapshot.paramMap.get('id');
+    if (idAusUrl) {
+      this.antragId = +idAusUrl;
+      this.lockService.lock(this.antragId);
+      this.laden(this.antragId);
+    }
+
     this.route.queryParamMap.subscribe(q => {
-      this.zielMitarbeiterId = q.get('mitarbeiterId') ?? '';
-      if (this.zielMitarbeiterId) {
-        this.ladeMitarbeiter(this.zielMitarbeiterId);
-      } else {
+      const ziel = q.get('mitarbeiterId') ?? '';
+      this.zielMitarbeiterId = ziel;
+      if (ziel) {
+        this.ladeMitarbeiter(ziel);
+      } else if (!this.antragId) {
         this.zielMitarbeiter = null;
       }
-      if (!this.antragId && !this.zielMitarbeiterId) {
+      if (!this.antragId && !ziel) {
         this.fehler = 'Bitte starten Sie einen neuen Urlaubsantrag aus der Mitarbeiterliste.';
-      }
-    });
-
-    this.route.paramMap.subscribe(p => {
-      const id = p.get('id');
-      if (id) {
-        this.antragId = +id;
-        this.laden(this.antragId);
       }
     });
   }
 
   laden(id: number): void {
     this.isLoading = true;
+    this.fehler = '';
     this.antragService.findById(id).subscribe({
       next: (a: UrlaubsAntragResponse) => {
+        this.antragStatus = a.status;
         this.zielMitarbeiterId = a.mitarbeiterId;
         this.ladeMitarbeiter(a.mitarbeiterId);
         this.form.patchValue({
@@ -83,6 +96,12 @@ export class VacationRequestFormComponent implements OnInit {
           urlaubsart: a.urlaubsart,
           kommentar:  a.kommentar ?? ''
         });
+        if (this.bearbeitungGesperrt) {
+          this.form.disable();
+          this.fehler = `Antrag mit Status "${this.statusLabel(a.status)}" kann nicht mehr bearbeitet werden. Nur Anträge mit Status "Beantragt" sind änderbar.`;
+        } else {
+          this.form.enable();
+        }
         this.isLoading = false;
       },
       error: () => { this.fehler = 'Antrag konnte nicht geladen werden.'; this.isLoading = false; }
@@ -101,6 +120,7 @@ export class VacationRequestFormComponent implements OnInit {
   }
 
   speichern(): void {
+    if (this.bearbeitungGesperrt) { return; }
     if (this.form.invalid) { this.fehler = 'Bitte alle Pflichtfelder ausfüllen.'; return; }
     const { startdatum, enddatum } = this.form.value;
     if (startdatum! > enddatum!) { this.fehler = 'Startdatum muss vor dem Enddatum liegen.'; return; }
@@ -144,7 +164,21 @@ export class VacationRequestFormComponent implements OnInit {
   abbrechen(): void { this.router.navigate(['/urlaubsantraege']); }
 
   get kannSpeichern(): boolean {
-    return this.form.valid && (!!this.zielMitarbeiterId || this.antragId !== null);
+    return this.form.valid
+      && (!!this.zielMitarbeiterId || this.antragId !== null)
+      && !this.bearbeitungGesperrt;
+  }
+
+  get bearbeitungGesperrt(): boolean {
+    return this.antragStatus !== null && this.antragStatus !== 'BEANTRAGT';
+  }
+
+  private statusLabel(s: AntragStatus): string {
+    const m: Record<AntragStatus, string> = {
+      BEANTRAGT: 'Beantragt', GENEHMIGT: 'Genehmigt',
+      ABGELEHNT: 'Abgelehnt', STORNIERT: 'Storniert'
+    };
+    return m[s];
   }
 
   get berechneTage(): number {
