@@ -41,6 +41,8 @@ export interface MitarbeiterRequest {
   vorname: string;
   nachname: string;
   email: string;
+  rolle: Rolle;
+  passwort?: string;
   bundesland: Bundesland;
   vorgesetzterMitarbeiterId?: string | null;
 }
@@ -54,6 +56,7 @@ export interface MitarbeiterResponse {
   rolle: Rolle;
   bundesland: Bundesland;
   vorgesetzterMitarbeiterId?: string | null;
+  passwortAenderungErforderlich?: boolean;
 }
 
 // ---- UrlaubsAntrag ----
@@ -131,6 +134,12 @@ export interface BasicCredentials {
 export interface LoginRequest {
   email: string;
   passwort: string;
+}
+
+/** Entspricht PasswortAenderungRequest (POST /api/auth/change-password). */
+export interface PasswortAenderungRequest {
+  altesPasswort: string;
+  neuesPasswort: string;
 }
 
 /** Entspricht RegisterFuehrungskraftRequest (POST /api/auth/register). */

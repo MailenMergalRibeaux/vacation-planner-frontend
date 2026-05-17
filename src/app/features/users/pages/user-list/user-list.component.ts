@@ -2,7 +2,9 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MitarbeiterService } from '@app/core/services/mitarbeiter.service';
+import { AuthService } from '@app/core/services/auth.service';
 import { MitarbeiterResponse, BUNDESLAND_LABELS } from '@app/core/models/api.models';
+import { forkJoin, Observable } from 'rxjs';
 
 @Component({
   selector: 'app-user-list',
@@ -16,18 +18,62 @@ export class UserListComponent implements OnInit {
   isLoading = false;
   readonly bundeslandLabels = BUNDESLAND_LABELS;
 
-  constructor(private mitarbeiterService: MitarbeiterService) {}
+  constructor(
+    private mitarbeiterService: MitarbeiterService,
+    private authService: AuthService
+  ) {}
 
   ngOnInit(): void { this.laden(); }
 
   laden(): void {
     this.isLoading = true;
-    this.mitarbeiterService.findAll().subscribe({
-      next: (data: MitarbeiterResponse[]) => {
-        this.mitarbeiter = data;
-        this.isLoading = false;
+
+    this.resolveCurrentMitarbeiter().subscribe({
+      next: (current: MitarbeiterResponse | null) => {
+        if (!current) {
+          this.mitarbeiter = [];
+          this.isLoading = false;
+          return;
+        }
+
+        forkJoin({
+          self: this.mitarbeiterService.findById(current.id),
+          team: this.mitarbeiterService.findAll(current.id)
+        }).subscribe({
+          next: ({ self, team }) => {
+            const map = new Map<string, MitarbeiterResponse>();
+            map.set(self.id, self);
+            team.forEach((m) => map.set(m.id, m));
+            this.mitarbeiter = Array.from(map.values());
+            this.isLoading = false;
+          },
+          error: () => {
+            this.mitarbeiter = [];
+            this.isLoading = false;
+          }
+        });
       },
-      error: () => { this.isLoading = false; }
+      error: () => {
+        this.mitarbeiter = [];
+        this.isLoading = false;
+      }
+    });
+  }
+
+  private resolveCurrentMitarbeiter(): Observable<MitarbeiterResponse | null> {
+    const current = this.authService.getCurrentMitarbeiter();
+    if (current) {
+      return new Observable<MitarbeiterResponse | null>((subscriber) => {
+        subscriber.next(current);
+        subscriber.complete();
+      });
+    }
+    if (this.authService.isAuthenticated()) {
+      return this.authService.resolveCurrentMitarbeiter();
+    }
+    return new Observable<MitarbeiterResponse | null>((subscriber) => {
+      subscriber.next(null);
+      subscriber.complete();
     });
   }
 

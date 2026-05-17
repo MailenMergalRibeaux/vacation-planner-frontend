@@ -7,6 +7,7 @@ import {
   BasicCredentials,
   LoginRequest,
   MitarbeiterResponse,
+  PasswortAenderungRequest,
   RegisterFuehrungskraftRequest,
   Rolle
 } from '@app/core/models/api.models';
@@ -52,6 +53,27 @@ export class AuthService {
         );
       })
     );
+  }
+
+  /**
+   * Ändert das eigene Passwort (POST /api/auth/change-password).
+   * Bei Erfolg werden die Basic-Credentials auf das neue Passwort umgestellt,
+   * damit Folgeaufrufe weiterhin authentifiziert sind.
+   */
+  changePassword(altesPasswort: string, neuesPasswort: string): Observable<MitarbeiterResponse> {
+    const body: PasswortAenderungRequest = { altesPasswort, neuesPasswort };
+    return this.http.post<MitarbeiterResponse>(`${environment.apiUrl}/auth/change-password`, body).pipe(
+      tap((mitarbeiter) => {
+        const aktuelle = this.getCredentials();
+        const username = aktuelle?.username ?? mitarbeiter.email;
+        this.persistSession({ username, password: neuesPasswort }, mitarbeiter);
+      })
+    );
+  }
+
+  /** True, wenn der eingeloggte Mitarbeiter sein Passwort wechseln muss, bevor er Funktionen nutzen darf. */
+  mussPasswortAendern(): boolean {
+    return this.currentMitarbeiterSubject.value?.passwortAenderungErforderlich === true;
   }
 
   logout(): void {

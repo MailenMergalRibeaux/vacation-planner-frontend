@@ -18,6 +18,26 @@
         </div>
 
         <div class="form-field">
+          <label for="rolle">Rolle <span class="required">*</span></label>
+          <select id="rolle" formControlName="rolle" class="form-control">
+            <option *ngFor="let rolle of rollen" [value]="rolle">
+              {{ rollenLabels[rolle] }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-field" *ngIf="!editId">
+          <label for="passwort">Passwort <span class="required">*</span></label>
+          <input
+            id="passwort"
+            type="password"
+            formControlName="passwort"
+            class="form-control"
+            placeholder="Mindestens 8 Zeichen"
+          />
+        </div>
+
+        <div class="form-field">
           <label for="vorname">Vorname <span class="required">*</span></label>
           <input id="vorname" type="text" formControlName="vorname" class="form-control" />
         </div>
@@ -37,7 +57,9 @@
         </div>
 
         <div class="form-field">
-          <label for="vorgesetzterMitarbeiterId">Vorgesetzter (optional)</label>
+          <label for="vorgesetzterMitarbeiterId">
+            Vorgesetzter {{ form.controls.rolle.value === 'MITARBEITER' ? '(Pflichtfeld)' : '(optional)' }}
+          </label>
           <select id="vorgesetzterMitarbeiterId" formControlName="vorgesetzterMitarbeiterId" class="form-control">
             <option value="">- Kein Vorgesetzter -</option>
             <option *ngFor="let v of vorgesetzte" [value]="v.id">

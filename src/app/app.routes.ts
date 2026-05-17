@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from '@app/core/guards/auth.guard';
 import { adminGuard } from '@app/core/guards/admin.guard';
+import { passwortAenderungGuard } from '@app/core/guards/passwort-aenderung.guard';
 import { LayoutComponent } from './shared/components/layout/layout.component';
 
 export const routes: Routes = [
@@ -13,9 +14,14 @@ export const routes: Routes = [
     loadComponent: () => import('./features/register/register.component').then(m => m.RegisterComponent)
   },
   {
+    path: 'passwort',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/change-password/change-password.component').then(m => m.ChangePasswordComponent)
+  },
+  {
     path: '',
     component: LayoutComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, passwortAenderungGuard],
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       {

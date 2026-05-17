@@ -25,7 +25,9 @@
 
     <div class="header-right">
       <div class="user-menu" *ngIf="currentMitarbeiter">
-        <span class="user-name">{{ currentMitarbeiter.vorname }} {{ currentMitarbeiter.nachname }}</span>
+        <a routerLink="/passwort" class="user-name" title="Passwort ändern">
+          {{ currentMitarbeiter.vorname }} {{ currentMitarbeiter.nachname }}
+        </a>
         <button (click)="logout()" class="btn-logout">Abmelden</button>
       </div>
     </div>
