@@ -60,12 +60,9 @@
           <label for="vorgesetzterMitarbeiterId">
             Vorgesetzter {{ form.controls.rolle.value === 'MITARBEITER' ? '(Pflichtfeld)' : '(optional)' }}
           </label>
-          <select id="vorgesetzterMitarbeiterId" formControlName="vorgesetzterMitarbeiterId" class="form-control">
-            <option value="">- Kein Vorgesetzter -</option>
-            <option *ngFor="let v of vorgesetzte" [value]="v.id">
-              {{ v.vorname }} {{ v.nachname }} ({{ v.id }})
-            </option>
-          </select>
+            <div class="form-control readonly">
+                {{ currentMitarbeiter?.vorname }} {{ currentMitarbeiter?.nachname }} ({{ currentMitarbeiter?.id }})
+            </div>
         </div>
       </div>
 

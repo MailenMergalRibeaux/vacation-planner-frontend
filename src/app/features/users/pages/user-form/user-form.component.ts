@@ -27,6 +27,8 @@ const ROLLE_LABELS: Record<Rolle, string> = {
   styleUrls: ['./user-form.component.scss']
 })
 export class UserFormComponent implements OnInit {
+  currentMitarbeiter = this.authService.getCurrentMitarbeiter();
+
   form = this.fb.group({
     id: ['', [Validators.required, Validators.minLength(2)]],
     vorname: ['', [Validators.required, Validators.minLength(2)]],
@@ -43,7 +45,6 @@ export class UserFormComponent implements OnInit {
   fehler = '';
   editId: string | null = null;
 
-  vorgesetzte: MitarbeiterResponse[] = [];
   readonly bundeslaender = Object.keys(BUNDESLAND_LABELS) as Bundesland[];
   readonly bundeslandLabels = BUNDESLAND_LABELS;
   readonly rollen: Rolle[] = ['MITARBEITER', 'FUEHRUNGSKRAFT'];
@@ -68,15 +69,17 @@ export class UserFormComponent implements OnInit {
       if (id) {
         this.form.controls.id.disable();
         this.ladeMitarbeiter(id);
+        // Vorgesetzter ist im Edit-Fall nicht änderbar -> keine automatische Anpassung mehr
+        this.form.controls.vorgesetzterMitarbeiterId.disable({ emitEvent: false });
       } else {
         this.form.controls.id.enable();
-        const current = this.authService.getCurrentMitarbeiter();
+
+        const current = this.currentMitarbeiter;
         if (current?.id && this.form.controls.rolle.value === 'MITARBEITER') {
           this.form.patchValue({ vorgesetzterMitarbeiterId: current.id });
         }
       }
 
-      this.ladeVorgesetzte();
       this.updateVorgesetzterValidator();
       this.updatePasswortValidator();
     });
@@ -94,32 +97,8 @@ export class UserFormComponent implements OnInit {
 
   private updateVorgesetzterValidator(): void {
     const control = this.form.controls.vorgesetzterMitarbeiterId;
-    if (this.form.controls.rolle.value === 'MITARBEITER') {
-      control.setValidators([Validators.required]);
-      if (!control.value && !this.editId) {
-        const current = this.authService.getCurrentMitarbeiter();
-        if (current?.id) {
-          control.setValue(current.id, { emitEvent: false });
-        }
-      }
-    } else {
-      control.clearValidators();
-    }
+    control.clearValidators();
     control.updateValueAndValidity({ emitEvent: false });
-  }
-
-  ladeVorgesetzte(): void {
-    this.isLoading = true;
-    this.mitarbeiterService.findAll().subscribe({
-      next: (data: MitarbeiterResponse[]) => {
-        this.vorgesetzte = this.editId ? data.filter(m => m.id !== this.editId) : data;
-        this.isLoading = false;
-      },
-      error: () => {
-        this.fehler = 'Vorgesetzte konnten nicht geladen werden.';
-        this.isLoading = false;
-      }
-    });
   }
 
   ladeMitarbeiter(id: string): void {

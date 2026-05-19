@@ -68,10 +68,10 @@
           },
           "configurations": {
             "production": {
-              "browserTarget": "vacation-planner:build:production"
+              "buildTarget": "vacation-planner:build:production"
             },
             "development": {
-              "browserTarget": "vacation-planner:build:development"
+              "buildTarget": "vacation-planner:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -79,7 +79,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "vacation-planner:build"
+            "buildTarget": "vacation-planner:build"
           }
         },
         "test": {

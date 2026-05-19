@@ -105,7 +105,7 @@ export class VacationRequestListComponent implements OnInit {
   }
 
   get listenTitel(): string {
-    return this.istFuehrungskraft ? 'Urlaubsanträge meiner Mitarbeiter' : 'Meine Urlaubsanträge';
+    return this.istFuehrungskraft ? 'Urlaubsanträge' : 'Meine Urlaubsanträge';
   }
 
   get leerMeldung(): string {
