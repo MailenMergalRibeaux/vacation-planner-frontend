@@ -1,0 +1,4 @@
+urlaubsplaner-app:
+  image: urlaubsplaner-app
+  ports:
+    - "8081:8080"   # statt 58080:8080

@@ -20,7 +20,7 @@
         <li class="nav-item">
           <a routerLink="/admin" routerLinkActive="active" (click)="closeMenu()">
               Verwaltung
-              <span *ngIf="currentMitarbeiter?.rolle === 'FUEHRUNGSKRAFT' && offeneGenehmigungenCount > 1"
+              <span *ngIf="currentMitarbeiter?.rolle === 'FUEHRUNGSKRAFT' && offeneGenehmigungenCount > 0"
                     class="badge-alert"
                     [ngStyle]="{ color: '#ff5252' }">
                   ({{ offeneGenehmigungenCount }})
