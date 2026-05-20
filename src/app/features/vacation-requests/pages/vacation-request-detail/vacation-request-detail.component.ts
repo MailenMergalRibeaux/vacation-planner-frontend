@@ -8,7 +8,8 @@ import { BearbeitungsLockService } from '@app/core/services/bearbeitungs-lock.se
 import { FlashMessageService } from '@app/core/services/flash-message.service';
 import { UrlaubsAntragService } from '@app/core/services/urlaubsantrag.service';
 import { UrlaubskontoService } from '@app/core/services/urlaubskonto.service';
-import { UrlaubskontoRequest, UrlaubsAntragResponse } from '@app/core/models/api.models';
+import { UrlaubskontoRequest, UrlaubsAntragResponse, MitarbeiterResponse } from '@app/core/models/api.models';
+import { MitarbeiterService } from '@app/core/services/mitarbeiter.service';
 
 @Component({
   selector: 'app-vacation-request-detail',
@@ -25,6 +26,10 @@ export class VacationRequestDetailComponent implements OnInit, OnDestroy {
   fehler = '';
   fehlendesUrlaubskonto: { mitarbeiterId: string; jahr: number } | null = null;
   wirdBearbeitet = false;
+
+  currentMitarbeiter: MitarbeiterResponse | null = null;
+  istZustaendigeFuehrungskraft = false;
+
   private lockSubscription?: Subscription;
 
   constructor(
@@ -33,6 +38,7 @@ export class VacationRequestDetailComponent implements OnInit, OnDestroy {
     private urlaubskontoService: UrlaubskontoService,
     private authService: AuthService,
     private lockService: BearbeitungsLockService,
+    private mitarbeiterService: MitarbeiterService,
     private route: ActivatedRoute,
     private router: Router
   ) {}
@@ -42,6 +48,8 @@ export class VacationRequestDetailComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.currentMitarbeiter = this.authService.getCurrentMitarbeiter();
+
     this.route.paramMap.subscribe(p => {
       const id = p.get('id');
       if (id) this.laden(+id);
@@ -56,8 +64,27 @@ export class VacationRequestDetailComponent implements OnInit, OnDestroy {
         this.fehlendesUrlaubskonto = null;
         this.isLoading = false;
         this.beobachteBearbeitungsLock(a.id);
+        this.pruefeZustaendigeFuehrungskraft(a);
       },
       error: () => { this.fehler = 'Antrag nicht gefunden.'; this.isLoading = false; }
+    });
+  }
+
+  private pruefeZustaendigeFuehrungskraft(a: UrlaubsAntragResponse): void {
+    const current = this.currentMitarbeiter;
+    if (!current || current.rolle !== 'FUEHRUNGSKRAFT') {
+      this.istZustaendigeFuehrungskraft = false;
+      return;
+    }
+
+    this.mitarbeiterService.findById(a.mitarbeiterId).subscribe({
+      next: (m) => {
+        // FK ist zuständig, wenn sie als Vorgesetzte/r des Mitarbeitenden eingetragen ist
+        this.istZustaendigeFuehrungskraft = m.vorgesetzterMitarbeiterId === current.id;
+      },
+      error: () => {
+        this.istZustaendigeFuehrungskraft = false;
+      }
     });
   }
 
@@ -82,6 +109,7 @@ export class VacationRequestDetailComponent implements OnInit, OnDestroy {
           next: (a: UrlaubsAntragResponse) => {
             this.antrag = a;
             this.isSubmitting = false;
+            this.antragService.notifyOffeneGenehmigungenChanged();
             this.flashMessageService.success('Urlaubsantrag erfolgreich genehmigt.');
           },
           error: (e: any) => { this.fehler = this.formatHttpError(e, 'Genehmigung fehlgeschlagen.'); this.isSubmitting = false; }
@@ -142,7 +170,11 @@ export class VacationRequestDetailComponent implements OnInit, OnDestroy {
     if (!grund) return;
     this.isSubmitting = true;
     this.antragService.ablehnen(this.antrag!.id, grund).subscribe({
-      next: (a: UrlaubsAntragResponse) => { this.antrag = a; this.isSubmitting = false; },
+      next: (a: UrlaubsAntragResponse) => {
+        this.antrag = a;
+        this.isSubmitting = false;
+        this.antragService.notifyOffeneGenehmigungenChanged();
+      },
       error: (e: any) => { this.fehler = this.formatHttpError(e, 'Ablehnung fehlgeschlagen.'); this.isSubmitting = false; }
     });
   }
@@ -151,7 +183,11 @@ export class VacationRequestDetailComponent implements OnInit, OnDestroy {
     if (!confirm('Antrag wirklich stornieren?')) return;
     this.isSubmitting = true;
     this.antragService.stornieren(this.antrag!.id).subscribe({
-      next: (a: UrlaubsAntragResponse) => { this.antrag = a; this.isSubmitting = false; },
+      next: (a: UrlaubsAntragResponse) => {
+        this.antrag = a;
+        this.isSubmitting = false;
+        this.antragService.notifyOffeneGenehmigungenChanged();
+      },
       error: (e: any) => { this.fehler = this.formatHttpError(e, 'Stornierung fehlgeschlagen.'); this.isSubmitting = false; }
     });
   }
@@ -182,18 +218,33 @@ export class VacationRequestDetailComponent implements OnInit, OnDestroy {
   // sind Genehmigen/Ablehnen/Stornieren blockiert.
   kannGenehmigen(): boolean {
     return this.antrag?.status === 'BEANTRAGT'
-      && this.authService.hasRole('FUEHRUNGSKRAFT')
-      && !this.wirdBearbeitet;
+        && this.istZustaendigeFuehrungskraft
+        && !this.wirdBearbeitet;
   }
+
   kannAblehnen(): boolean {
     return this.antrag?.status === 'BEANTRAGT'
-      && this.authService.hasRole('FUEHRUNGSKRAFT')
-      && !this.wirdBearbeitet;
+        && this.istZustaendigeFuehrungskraft
+        && !this.wirdBearbeitet;
   }
+
   kannStornieren(): boolean {
-    return this.antrag?.status === 'BEANTRAGT' && !this.wirdBearbeitet;
+    return this.antrag?.status === 'BEANTRAGT'
+        && (this.istAntragsteller() || this.istZustaendigeFuehrungskraft)
+        && !this.wirdBearbeitet;
   }
-  kannBearbeiten(): boolean { return this.antrag?.status === 'BEANTRAGT'; }
+
+  kannBearbeiten(): boolean {
+    return this.antrag?.status === 'BEANTRAGT'
+        && (this.istAntragsteller() || this.istZustaendigeFuehrungskraft)
+        && !this.wirdBearbeitet;
+  }
 
   zurueck(): void { this.router.navigate(['/urlaubsantraege']); }
+
+  private istAntragsteller(): boolean {
+    return !!this.antrag
+        && !!this.currentMitarbeiter
+        && this.antrag.mitarbeiterId === this.currentMitarbeiter.id;
+  }
 }

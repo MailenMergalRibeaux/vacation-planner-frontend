@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import {
@@ -14,7 +14,15 @@ import {
 export class UrlaubsAntragService {
   private readonly url = `${environment.apiUrl}/urlaubsantraege`;
 
+  // Event-Stream für Änderungen an offenen Genehmigungen
+  private offeneGenehmigungenChangedSubject = new Subject<void>();
+  offeneGenehmigungenChanged$ = this.offeneGenehmigungenChangedSubject.asObservable();
+
   constructor(private http: HttpClient) {}
+
+  notifyOffeneGenehmigungenChanged(): void {
+    this.offeneGenehmigungenChangedSubject.next();
+  }
 
   /** POST /api/urlaubsantraege */
   erstellen(request: UrlaubsAntragRequest): Observable<UrlaubsAntragResponse> {

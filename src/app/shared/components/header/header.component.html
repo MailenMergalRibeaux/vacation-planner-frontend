@@ -18,7 +18,14 @@
           <a routerLink="/mitarbeiter" routerLinkActive="active" (click)="closeMenu()">Mitarbeiter</a>
         </li>
         <li class="nav-item">
-          <a routerLink="/admin" routerLinkActive="active" (click)="closeMenu()">Verwaltung</a>
+          <a routerLink="/admin" routerLinkActive="active" (click)="closeMenu()">
+              Verwaltung
+              <span *ngIf="currentMitarbeiter?.rolle === 'FUEHRUNGSKRAFT' && offeneGenehmigungenCount > 1"
+                    class="badge-alert"
+                    [ngStyle]="{ color: '#ff5252' }">
+                  ({{ offeneGenehmigungenCount }})
+              </span>
+          </a>
         </li>
       </ul>
     </nav>

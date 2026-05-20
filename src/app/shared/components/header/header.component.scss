@@ -178,5 +178,14 @@
   .menu-toggle {
     display: flex;
   }
+
+  .nav-item a .badge-alert {
+    margin-left: 4px;
+    font-weight: 700;
+    color: #ff5252 !important;
+    background: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+  }
 }
 
