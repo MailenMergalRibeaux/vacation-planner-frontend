@@ -4,6 +4,27 @@
     <a routerLink="/mitarbeiter/neu" class="btn-primary">+ Mitarbeiter anlegen</a>
   </div>
 
+  <div *ngIf="istFuehrungskraft" class="invite-box">
+      <h2>Neue Führungskraft einladen</h2>
+      <p>Erzeuge einen Einladungscode und sende ihn an die neue Führungskraft.</p>
+
+      <button
+              type="button"
+              class="btn-primary"
+              (click)="generateInviteCode()"
+              [disabled]="isInviteLoading">
+          {{ isInviteLoading ? 'Code wird erzeugt…' : 'Einladungscode erzeugen' }}
+      </button>
+
+      <div *ngIf="inviteCode" class="invite-code-box">
+          <p>Diesen Code bei der Registrierung verwenden: <code>{{ inviteCode }}</code></p>
+      </div>
+
+      <div *ngIf="inviteError" class="error">
+          {{ inviteError }}
+      </div>
+  </div>
+
   <div *ngIf="isLoading" class="loading">Laden…</div>
 
   <div *ngIf="!isLoading && mitarbeiter.length === 0" class="empty-state">

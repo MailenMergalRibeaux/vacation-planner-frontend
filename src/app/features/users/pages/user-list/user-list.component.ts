@@ -14,6 +14,11 @@ import { forkJoin, Observable } from 'rxjs';
   styleUrls: ['./user-list.component.scss']
 })
 export class UserListComponent implements OnInit {
+  istFuehrungskraft = false;
+  inviteCode: string | null = null;
+  inviteError: string | null = null;
+  isInviteLoading = false;
+
   mitarbeiter: MitarbeiterResponse[] = [];
   isLoading = false;
   readonly bundeslandLabels = BUNDESLAND_LABELS;
@@ -36,15 +41,12 @@ export class UserListComponent implements OnInit {
           return;
         }
 
-        forkJoin({
-          self: this.mitarbeiterService.findById(current.id),
-          team: this.mitarbeiterService.findAll(current.id)
-        }).subscribe({
-          next: ({ self, team }) => {
-            const map = new Map<string, MitarbeiterResponse>();
-            map.set(self.id, self);
-            team.forEach((m) => map.set(m.id, m));
-            this.mitarbeiter = Array.from(map.values());
+        this.istFuehrungskraft = current.rolle === 'FUEHRUNGSKRAFT';
+
+        this.mitarbeiterService.findAll(current.id).subscribe({
+          next: (team) => {
+            // falls das Backend die Führungskraft doch mitliefert, hier zur Sicherheit rausfiltern:
+            this.mitarbeiter = team.filter(m => m.id !== current.id);
             this.isLoading = false;
           },
           error: () => {
@@ -56,6 +58,26 @@ export class UserListComponent implements OnInit {
       error: () => {
         this.mitarbeiter = [];
         this.isLoading = false;
+      }
+    });
+  }
+
+  generateInviteCode(): void {
+    if (!this.istFuehrungskraft || this.isInviteLoading) return;
+
+    this.isInviteLoading = true;
+    this.inviteError = null;
+    this.inviteCode = null;
+
+    this.authService.generateFuehrungskraftInvite().subscribe({
+      next: (res) => {
+        this.inviteCode = res.code;
+        this.isInviteLoading = false;
+      },
+      error: (err) => {
+        this.inviteError =
+            err?.error?.message || 'Fehler beim Erzeugen des Einladungscodes.';
+        this.isInviteLoading = false;
       }
     });
   }
