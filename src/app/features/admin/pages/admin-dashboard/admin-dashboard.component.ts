@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MitarbeiterService } from '@app/core/services/mitarbeiter.service';
 import { UrlaubsAntragService } from '@app/core/services/urlaubsantrag.service';
+import { AuthService } from '@app/core/services/auth.service'
 import { MitarbeiterResponse, UrlaubsAntragResponse } from '@app/core/models/api.models';
 
 @Component({
@@ -17,14 +18,17 @@ export class AdminDashboardComponent implements OnInit {
   mitarbeiterMap: Record<string, MitarbeiterResponse> = {};
   isLoading = false;
 
+  currentMitarbeiter: MitarbeiterResponse | null = null;
+
   constructor(
     private antragService: UrlaubsAntragService,
-    private mitarbeiterService: MitarbeiterService
+    private mitarbeiterService: MitarbeiterService,
+    public authService: AuthService
   ) {}
 
   ngOnInit(): void {
+    this.currentMitarbeiter = this.authService.getCurrentMitarbeiter();
     this.ladeMitarbeiter();
-    this.laden();
   }
 
   ladeMitarbeiter(): void {
@@ -33,23 +37,46 @@ export class AdminDashboardComponent implements OnInit {
         this.mitarbeiterMap = data.reduce((acc: Record<string, MitarbeiterResponse>, m: MitarbeiterResponse) => {
           acc[m.id] = m;
           return acc;
-        }, {});
+        },
+        {});
+        this.laden();
       },
       error: () => {
         this.mitarbeiterMap = {};
+        this.laden();
       }
     });
   }
 
   laden(): void {
+    // Nur Führungskräfte sehen offene Genehmigungen ihres Teams
+    if (!this.currentMitarbeiter || this.currentMitarbeiter.rolle !== 'FUEHRUNGSKRAFT') {
+      this.pendingAntraege = [];
+      return;
+    }
+
     this.isLoading = true;
+
     // Alle BEANTRAGT-Anträge aller Mitarbeiter laden
     this.antragService.findAll(undefined, 'BEANTRAGT').subscribe({
       next: (data: UrlaubsAntragResponse[]) => {
-        this.pendingAntraege = data;
+        const currentId = this.currentMitarbeiter!.id;
+
+        // Alle direkten Team-Mitglieder der aktuellen Führungskraft
+        const teamIds = Object.values(this.mitarbeiterMap)
+            .filter((m) => m.vorgesetzterMitarbeiterId === currentId)
+            .map((m) => m.id);
+
+        // Offene Anträge NUR dieser Team-Mitglieder, ohne eigene Anträge
+        this.pendingAntraege = data.filter(
+            (a) => teamIds.includes(a.mitarbeiterId) && a.mitarbeiterId !== currentId);
+
         this.isLoading = false;
       },
-      error: () => { this.isLoading = false; }
+      error: () => {
+        this.pendingAntraege = [];
+        this.isLoading = false;
+      }
     });
   }
 
