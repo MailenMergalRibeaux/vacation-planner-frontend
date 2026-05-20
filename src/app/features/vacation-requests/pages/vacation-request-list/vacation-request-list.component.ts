@@ -25,6 +25,10 @@ export class VacationRequestListComponent implements OnInit {
   private teamIds = new Set<string>();
   private geladenFuerMitarbeiterId = '';
 
+  zeigeNurEigene = false;
+  private eigeneAntraege: UrlaubsAntragResponse[] = [];
+  private teamAntraege: UrlaubsAntragResponse[] = [];
+
   readonly statusOptions: { value: AntragStatus | '', label: string }[] = [
     { value: '', label: 'Alle' },
     { value: 'BEANTRAGT',  label: 'Beantragt'  },
@@ -91,9 +95,22 @@ export class VacationRequestListComponent implements OnInit {
         }, {} as Record<string, MitarbeiterResponse>);
         this.teamIds = new Set(team.map(t => t.id));
 
-        this.antraege = this.istFuehrungskraft
-          ? antraege.filter(a => this.teamIds.has(a.mitarbeiterId))
-          : antraege;
+        if (this.istFuehrungskraft) {
+          const ownId = aktueller.id;
+
+          // eigene Anträge der Führungskraft
+          this.eigeneAntraege = antraege.filter(a => a.mitarbeiterId === ownId);
+
+          // Team-Anträge (ohne eigene)
+          this.teamAntraege = antraege.filter(
+              a => this.teamIds.has(a.mitarbeiterId) && a.mitarbeiterId !== ownId
+          );
+
+          this.refreshGefilterteAntraege();
+        } else {
+          // Mitarbeiter: einfach eigene Anträge
+          this.antraege = antraege;
+        }
 
         this.isLoading = false;
       },
@@ -104,20 +121,44 @@ export class VacationRequestListComponent implements OnInit {
     });
   }
 
+  // NEU: Anzeige je nach Toggle aktualisieren
+  private refreshGefilterteAntraege(): void {
+    if (!this.istFuehrungskraft) return;
+
+    // Nur eigene ODER nur Team-Anträge – nicht beides gleichzeitig
+    this.antraege = this.zeigeNurEigene
+        ? this.eigeneAntraege // Meine Urlaubsanträge
+        : this.teamAntraege; // Urlaubsanträge meines Teams
+  }
+
+  // NEU: Toggle-Methode fürs Template
+  toggleNurEigene(): void {
+    this.zeigeNurEigene = !this.zeigeNurEigene;
+    this.refreshGefilterteAntraege();
+  }
+
   get listenTitel(): string {
-    return this.istFuehrungskraft ? 'Urlaubsanträge' : 'Meine Urlaubsanträge';
+    if (!this.istFuehrungskraft || this.zeigeNurEigene) {
+      return 'Meine Urlaubsanträge';
+    }
+    return 'Urlaubsanträge meines Teams';
   }
 
   get leerMeldung(): string {
-    return this.istFuehrungskraft
-      ? 'Es liegen aktuell keine Urlaubsanträge deines Teams vor.'
-      : 'Du hast aktuell keine Urlaubsanträge.';
+    if (!this.istFuehrungskraft || this.zeigeNurEigene) {
+      return 'Du hast aktuell keine Urlaubsanträge.';
+    }
+    return 'Es liegen aktuell keine Urlaubsanträge deines Teams vor.';
   }
 
   neuerAntrag(): void {
     if (this.istFuehrungskraft) {
-      this.router.navigate(['/mitarbeiter']);
-      return;
+      if (this.zeigeNurEigene) {
+        this.router.navigate(['/urlaubsantraege', 'neu'], {queryParams: { mitarbeiterId: this.geladenFuerMitarbeiterId }});
+      } else {
+        this.router.navigate(['/mitarbeiter']);
+        return;
+      }
     }
     if (this.mitarbeiter) {
       this.router.navigate(['/urlaubsantraege', 'neu'], {
@@ -127,7 +168,8 @@ export class VacationRequestListComponent implements OnInit {
   }
 
   get neuerAntragLabel(): string {
-    return this.istFuehrungskraft ? '+ Mitarbeiter für Antrag wählen' : 'Antrag stellen';
+    return !this.istFuehrungskraft || this.zeigeNurEigene
+        ? 'Antrag stellen' : '+ Mitarbeiter für Antrag wählen';
   }
 
   loeschen(id: number): void {

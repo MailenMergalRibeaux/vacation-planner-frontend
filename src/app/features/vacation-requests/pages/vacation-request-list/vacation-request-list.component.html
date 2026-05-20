@@ -1,7 +1,16 @@
 <div class="container">
   <div class="page-header">
-    <h1>{{ listenTitel }}</h1>
-    <button (click)="neuerAntrag()" class="btn-primary">{{ neuerAntragLabel }}</button>
+      <h1>{{ listenTitel }}</h1>
+      <div class="page-header-actions">
+          <!-- Nur für Führungskräfte: Toggle zwischen Team vs. eigene Anträge -->
+          <button *ngIf="istFuehrungskraft" (click)="toggleNurEigene()" class="btn-secondary">
+              {{ zeigeNurEigene ? 'Team-Anträge anzeigen' : 'Meine Urlaubsanträge' }}
+          </button>
+
+          <button (click)="neuerAntrag()" class="btn-primary">
+              {{ neuerAntragLabel }}
+          </button>
+      </div>
   </div>
 
   <!-- Filters -->

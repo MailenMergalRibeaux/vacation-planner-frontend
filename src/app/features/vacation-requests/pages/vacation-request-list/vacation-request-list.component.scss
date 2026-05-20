@@ -15,6 +15,11 @@
   }
 }
 
+.page-header-actions {
+  display: flex;
+  gap: 0.5rem; // Abstand zwischen Buttons
+}
+
 .filters-section {
   background: white;
   padding: 20px;

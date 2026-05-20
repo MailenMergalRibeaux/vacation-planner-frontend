@@ -19,11 +19,9 @@
 
         <div class="form-field">
           <label for="rolle">Rolle <span class="required">*</span></label>
-          <select id="rolle" formControlName="rolle" class="form-control">
-            <option *ngFor="let rolle of rollen" [value]="rolle">
-              {{ rollenLabels[rolle] }}
-            </option>
-          </select>
+            <div class="form-control readonly">
+                {{ rollenLabels[form.get('rolle')?.value || 'MITARBEITER'] }}
+            </div>
         </div>
 
         <div class="form-field" *ngIf="!editId">
@@ -57,9 +55,7 @@
         </div>
 
         <div class="form-field">
-          <label for="vorgesetzterMitarbeiterId">
-            Vorgesetzter {{ form.controls.rolle.value === 'MITARBEITER' ? '(Pflichtfeld)' : '(optional)' }}
-          </label>
+            <label for="vorgesetzterMitarbeiterId">Vorgesetzter <span class="required">*</span></label>
             <div class="form-control readonly">
                 {{ currentMitarbeiter?.vorname }} {{ currentMitarbeiter?.nachname }} ({{ currentMitarbeiter?.id }})
             </div>

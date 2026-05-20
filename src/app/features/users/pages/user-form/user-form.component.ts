@@ -69,13 +69,21 @@ export class UserFormComponent implements OnInit {
       if (id) {
         this.form.controls.id.disable();
         this.ladeMitarbeiter(id);
+
+        // Rolle im Edit-Modus nicht änderbar
+        this.form.controls.rolle.disable({ emitEvent: false });
+
         // Vorgesetzter ist im Edit-Fall nicht änderbar -> keine automatische Anpassung mehr
         this.form.controls.vorgesetzterMitarbeiterId.disable({ emitEvent: false });
       } else {
+        // Create: ID-Feld frei
         this.form.controls.id.enable();
 
+        // Rolle beim Neuanlegen immer MITARBEITER
+        this.form.patchValue({ rolle: 'MITARBEITER' as Rolle });
+
         const current = this.currentMitarbeiter;
-        if (current?.id && this.form.controls.rolle.value === 'MITARBEITER') {
+        if (current?.id) {
           this.form.patchValue({ vorgesetzterMitarbeiterId: current.id });
         }
       }
