@@ -158,6 +158,16 @@ API-Basis-URL pro Build-Konfiguration in `src/environments/`:
 export const environment = { production: false, apiUrl: '/api' };
 ```
 
+## Docker Compose (App)
+
+```bash
+docker build -t vacation-planner-frontend . 
+
+docker stop vacation-planner-frontend  
+
+docker run -d --rm -p 8081:80 --name vacation-planner-frontend vacation-planner-frontend
+```
+
 ## Testing
 
 ```bash

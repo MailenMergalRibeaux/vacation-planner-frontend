@@ -1,44 +1,121 @@
 <div class="container" *ngIf="authService.hasRole('FUEHRUNGSKRAFT'); else keineRechte">
-  <h1>Offene Genehmigungen für mein Team</h1>
+  <div class="dashboard-wrapper">
+    <h1>Führungskraft Verwaltung</h1>
 
-  <div *ngIf="isLoading" class="loading">Laden…</div>
+      <!-- Section: Offene Einladungscodes -->
+      <div class="stats-section">
+          <h2>Offene Genehmigungen</h2>
 
-  <div *ngIf="!isLoading && pendingAntraege.length === 0" class="empty-state">
-    <p>Keine offenen Urlaubsanträge deiner Teammitglieder.</p>
-  </div>
+          <div class="stats-grid">
+              <div class="stat-card">
+                  <div class="stat-value">{{ pendingAntraege.length }}</div>
+                  <div class="stat-label">Genehmigung(en)</div>
+              </div>
+          </div>
 
-  <div *ngIf="!isLoading && pendingAntraege.length > 0" class="requests-table-responsive">
-    <table class="requests-table">
-      <thead>
-        <tr>
-          <th>ID</th><th>Mitarbeiter-ID</th><th>Von</th><th>Bis</th><th>Tage</th><th>Art</th><th>Kommentar</th><th>Aktion</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let a of pendingAntraege">
-          <td>{{ a.id }}</td>
-          <td>
-            <a [routerLink]="['/mitarbeiter', a.mitarbeiterId, 'bearbeiten']" [title]="mitarbeiterTooltip(a.mitarbeiterId)" class="link">
-              <code>{{ a.mitarbeiterId }}</code>
-            </a>
-          </td>
-          <td>{{ a.startdatum | date:'dd.MM.yyyy' }}</td>
-          <td>{{ a.enddatum   | date:'dd.MM.yyyy' }}</td>
-          <td>{{ calculateDays(a) }}</td>
-          <td>{{ a.urlaubsart }}</td>
-          <td>{{ a.kommentar || '–' }}</td>
-          <td>
-            <a [routerLink]="['/urlaubsantraege', a.id]" class="link">Überprüfen</a>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+          <div class="recent-section">
+              <div class="section-header">
+                  <h3>Details zu offene(n) Genehmigung(en)</h3>
+              </div>
+
+              <div *ngIf="isLoading" class="loading">Laden…</div>
+
+              <div *ngIf="!isLoading && pendingAntraege.length === 0" class="empty-state">
+                  <p>Keine offenen Urlaubsanträge deiner Teammitglieder.</p>
+              </div>
+
+              <div *ngIf="!isLoading && pendingAntraege.length > 0"
+                   class="requests-table-responsive">
+                  <table class="requests-table">
+                      <thead>
+                          <tr>
+                              <th>ID</th>
+                              <th>Mitarbeiter-ID</th>
+                              <th>Von</th>
+                              <th>Bis</th>
+                              <th>Tage</th>
+                              <th>Art</th>
+                              <th>Kommentar</th>
+                              <th>Aktion</th>
+                          </tr>
+                      </thead>
+
+                      <tbody>
+                          <tr *ngFor="let a of pendingAntraege">
+                              <td>{{ a.id }}</td>
+                              <td>
+                                  <a [routerLink]="['/mitarbeiter', a.mitarbeiterId, 'bearbeiten']" [title]="mitarbeiterTooltip(a.mitarbeiterId)" class="link">
+                                      <code>{{ a.mitarbeiterId }}</code>
+                                  </a>
+                              </td>
+                              <td>{{ a.startdatum | date:'dd.MM.yyyy' }}</td>
+                              <td>{{ a.enddatum   | date:'dd.MM.yyyy' }}</td>
+                              <td>{{ calculateDays(a) }}</td>
+                              <td>{{ a.urlaubsart }}</td>
+                              <td>{{ a.kommentar || '–' }}</td>
+                              <td>
+                                  <a [routerLink]="['/urlaubsantraege', a.id]" class="link">Überprüfen</a>
+                              </td>
+                          </tr>
+                      </tbody>
+                  </table>
+              </div>
+          </div>
+      </div>
+
+    <!-- Section: Offene Einladungscodes -->
+    <div class="stats-section">
+        <h2>Offene Einladungscodes</h2>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">{{ offeneEinladungen.length }}</div>
+                <div class="stat-label">Offene Codes</div>
+            </div>
+        </div>
+
+        <div class="recent-section">
+            <div class="section-header">
+                <h3>Details zu offenen Einladungscodes</h3>
+            </div>
+
+            <div *ngIf="isLoadingEinladungen" class="loading">Laden…</div>
+
+            <div *ngIf="!isLoadingEinladungen && offeneEinladungen.length === 0" class="empty-state">
+                <p>Es sind aktuell keine offenen Einladungscodes vorhanden.</p>
+            </div>
+
+            <div *ngIf="!isLoadingEinladungen && offeneEinladungen.length > 0"
+                    class="requests-table-responsive">
+                <table class="requests-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Code</th>
+                            <th>Gültig bis</th>
+                            <th>Erstellt am</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let e of offeneEinladungen">
+                            <td>{{ e.id }}</td>
+                            <td><code>{{ e.code }}</code></td>
+                            <td>{{ e.gueltigBis ? (e.gueltigBis | date:'dd.MM.yyyy HH:mm') : '–' }}</td>
+                            <td>{{ e.erstelltAm | date:'dd.MM.yyyy HH:mm' }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
   </div>
 </div>
 
 <ng-template #keineRechte>
     <div class="container">
-        <h1>Offene Genehmigungen</h1>
-        <p>Diese Ansicht steht nur Führungskräften zur Verfügung.</p>
+        <div class="dashboard-wrapper">
+            <p>Diese Ansicht steht nur Führungskräften zur Verfügung.</p>
+        </div>
     </div>
 </ng-template>

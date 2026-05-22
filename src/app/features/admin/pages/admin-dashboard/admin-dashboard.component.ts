@@ -3,8 +3,13 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MitarbeiterService } from '@app/core/services/mitarbeiter.service';
 import { UrlaubsAntragService } from '@app/core/services/urlaubsantrag.service';
-import { AuthService } from '@app/core/services/auth.service'
-import { MitarbeiterResponse, UrlaubsAntragResponse } from '@app/core/models/api.models';
+import { AuthService } from '@app/core/services/auth.service';
+import { FuehrungskraftService } from '@app/core/services/fuehrungskraft.service';
+import {
+  MitarbeiterResponse,
+  UrlaubsAntragResponse,
+  FuehrungskraftEinladungResponse
+} from '@app/core/models/api.models';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -18,17 +23,22 @@ export class AdminDashboardComponent implements OnInit {
   mitarbeiterMap: Record<string, MitarbeiterResponse> = {};
   isLoading = false;
 
+  offeneEinladungen: FuehrungskraftEinladungResponse[] = [];
+  isLoadingEinladungen = false;
+
   currentMitarbeiter: MitarbeiterResponse | null = null;
 
   constructor(
     private antragService: UrlaubsAntragService,
     private mitarbeiterService: MitarbeiterService,
+    private fuehrungskraftService: FuehrungskraftService,
     public authService: AuthService
   ) {}
 
   ngOnInit(): void {
     this.currentMitarbeiter = this.authService.getCurrentMitarbeiter();
     this.ladeMitarbeiter();
+    this.ladeOffeneEinladungen();
   }
 
   ladeMitarbeiter(): void {
@@ -44,6 +54,27 @@ export class AdminDashboardComponent implements OnInit {
       error: () => {
         this.mitarbeiterMap = {};
         this.laden();
+      }
+    });
+  }
+
+  ladeOffeneEinladungen(): void {
+    if (!this.currentMitarbeiter || this.currentMitarbeiter.rolle !== 'FUEHRUNGSKRAFT') {
+      this.offeneEinladungen = [];
+      return;
+    }
+
+    this.isLoadingEinladungen = true;
+
+    this.fuehrungskraftService.getOffeneEinladungen().subscribe({
+      next: (einladungen) => {
+        this.offeneEinladungen = einladungen;
+        this.isLoadingEinladungen = false;
+      },
+      error: (err) => {
+        console.error('Fehler beim Laden der offenen Einladungen', err);
+        this.offeneEinladungen = [];
+        this.isLoadingEinladungen = false;
       }
     });
   }

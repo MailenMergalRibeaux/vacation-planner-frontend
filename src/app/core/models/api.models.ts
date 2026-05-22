@@ -154,3 +154,12 @@ export interface RegisterFuehrungskraftRequest {
   inviteCode: string;
 }
 
+/** Entspricht FuehrungskraftEinladungResponse */
+export interface FuehrungskraftEinladungResponse {
+  id: number;
+  code: string;
+  eingeloest: boolean;
+  gueltigBis: string | null;
+  einladenderMitarbeiterId: string;
+  erstelltAm: string;
+}
