@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MitarbeiterService } from '@app/core/services/mitarbeiter.service';
 import { AuthService } from '@app/core/services/auth.service';
+import { FuehrungskraftService } from '@app/core/services/fuehrungskraft.service';
 import { MitarbeiterResponse, BUNDESLAND_LABELS } from '@app/core/models/api.models';
 import { forkJoin, Observable } from 'rxjs';
 
@@ -25,7 +26,8 @@ export class UserListComponent implements OnInit {
 
   constructor(
     private mitarbeiterService: MitarbeiterService,
-    private authService: AuthService
+    private authService: AuthService,
+    private fuehrungskraftService: FuehrungskraftService
   ) {}
 
   ngOnInit(): void { this.laden(); }
@@ -69,7 +71,7 @@ export class UserListComponent implements OnInit {
     this.inviteError = null;
     this.inviteCode = null;
 
-    this.authService.generateFuehrungskraftInvite().subscribe({
+    this.fuehrungskraftService.generateFuehrungskraftInvite().subscribe({
       next: (res) => {
         this.inviteCode = res.code;
         this.isInviteLoading = false;

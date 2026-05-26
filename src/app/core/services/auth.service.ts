@@ -71,14 +71,6 @@ export class AuthService {
     );
   }
 
-  /** Erzeugt einen Einladungscode für eine neue Führungskraft (POST /api/auth/invite-fuehrungskraft). */
-  generateFuehrungskraftInvite(): Observable<{ code: string }> {
-    return this.http.post<{ code: string }>(
-        `${environment.apiUrl}/auth/invite-fuehrungskraft`,
-        {}
-    );
-  }
-
   /** True, wenn der eingeloggte Mitarbeiter sein Passwort wechseln muss, bevor er Funktionen nutzen darf. */
   mussPasswortAendern(): boolean {
     return this.currentMitarbeiterSubject.value?.passwortAenderungErforderlich === true;
