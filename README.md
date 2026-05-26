@@ -14,6 +14,8 @@ Ein modernes Angular 18 Frontend für einen Spring Boot-basierten Urlaubsplaner.
 - ✅ **Responsive Design** – Optimiert für Desktop und Mobile
 - ✅ **SCSS Styling** – Modern und wartbar
 
+---
+
 ## Architektur
 
 ```text
@@ -33,11 +35,15 @@ src/app/
 └── app.component.ts      # Root Component
 ```
 
+---
+
 ## Voraussetzungen
 
 - Node.js v20.15.0 oder höher
 - npm 10.7.0 oder höher
 - Angular CLI 18
+
+---
 
 ## Installation
 
@@ -51,6 +57,8 @@ npm start
 # Zum Bauen für Produktion
 npm run build:prod
 ```
+
+---
 
 ## Development Server
 
@@ -371,5 +379,3 @@ Die wichtigsten Einstellungen der `tsconfig.json`:
 ## Lizenz
 
 Proprietary – Nutzung ausschließlich im Rahmen der jeweiligen Projektvereinbarungen. Eine Weitergabe oder öffentliche Nutzung ist ohne ausdrückliche Genehmigung nicht gestattet.
-
-
