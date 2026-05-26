@@ -227,6 +227,8 @@ Beispielhafte Route-Struktur:
   - Root Component
   - Einbettung des Layouts (Header, Router-Outlet, Footer)
 
+---
+
 ## 📊 Projektstatistiken
 
 | Komponente | Dateien | Status |
@@ -357,6 +359,7 @@ src/
             │   └── user-form/
             └── users.routes.ts
 ```
+
 ---
 
 ## 🔐 Authentifizierung
@@ -366,8 +369,6 @@ Das Frontend erweitert alle HTTP-Requests automatisch mit einem HTTP-Basic-Heade
 ```http
 Authorization: Basic <base64(email:passwort)>
 ```
-
----
 
 ---
 
