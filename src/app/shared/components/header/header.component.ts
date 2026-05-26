@@ -5,6 +5,7 @@ import { AuthService } from '@app/core/services/auth.service';
 import { MitarbeiterResponse, UrlaubsAntragResponse } from '@app/core/models/api.models';
 import { MitarbeiterService } from '@app/core/services/mitarbeiter.service';
 import { UrlaubsAntragService } from '@app/core/services/urlaubsantrag.service';
+import { InactivityService } from '@app/core/services/inactivity.service';
 
 @Component({
   selector: 'app-header',
@@ -21,11 +22,14 @@ export class HeaderComponent implements OnInit {
   isLoadingOffeneGenehmigungen = false;
   mitarbeiterMap: Record<string, MitarbeiterResponse> = {};
 
+  remainingSeconds$ = this.inactivityService.remainingSeconds$;
+
   constructor(
       private authService: AuthService,
       private mitarbeiterService: MitarbeiterService,
       private urlaubsAntragService: UrlaubsAntragService,
-      private router: Router
+      private router: Router,
+      private inactivityService: InactivityService
   ) {}
 
   ngOnInit(): void {
@@ -34,7 +38,6 @@ export class HeaderComponent implements OnInit {
       this.ladeOffeneGenehmigungen();
     });
 
-    // Bei jeder Änderung an offenen Genehmigungen neu laden
     this.urlaubsAntragService.offeneGenehmigungenChanged$.subscribe(() => {
       this.ladeOffeneGenehmigungen();
     });
@@ -46,6 +49,12 @@ export class HeaderComponent implements OnInit {
   logout(): void {
     this.authService.logout();
     this.router.navigate(['/login']);
+  }
+
+  formatTime(seconds: number): string {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
   }
 
   private ladeOffeneGenehmigungen(): void {

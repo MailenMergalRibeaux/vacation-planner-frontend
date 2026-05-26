@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
+import { InactivityService } from './core/services/inactivity.service';
 
 @Component({
   selector: 'app-root',
@@ -9,7 +10,13 @@ import { RouterOutlet } from '@angular/router';
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
   title = 'vacation-planner';
+
+  constructor(private inactivityService: InactivityService) {}
+
+  ngOnInit(): void {
+    this.inactivityService.initListener();
+  }
 }
 

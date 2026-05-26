@@ -31,12 +31,15 @@
     </nav>
 
     <div class="header-right">
-      <div class="user-menu" *ngIf="currentMitarbeiter">
-        <a routerLink="/passwort" class="user-name" title="Passwort ändern">
-          {{ currentMitarbeiter.vorname }} {{ currentMitarbeiter.nachname }}
-        </a>
-        <button (click)="logout()" class="btn-logout">Abmelden</button>
-      </div>
+        <div class="session-timer" *ngIf="currentMitarbeiter && (remainingSeconds$ | async) as remaining">
+            Logout in <strong>{{ formatTime(remaining) }}</strong>
+        </div>
+        <div class="user-menu" *ngIf="currentMitarbeiter">
+            <a routerLink="/passwort" class="user-name" title="Passwort ändern">
+              {{ currentMitarbeiter.vorname }} {{ currentMitarbeiter.nachname }}
+            </a>
+            <button (click)="logout()" class="btn-logout">Abmelden</button>
+        </div>
     </div>
 
     <button class="menu-toggle" (click)="toggleMenu()">
