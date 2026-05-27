@@ -42,9 +42,17 @@
       <tbody>
         <tr *ngFor="let a of antraege" [class]="statusClass(a.status)">
           <td>
-            <a [routerLink]="['/mitarbeiter', a.mitarbeiterId, 'bearbeiten']" [title]="mitarbeiterTooltip(a.mitarbeiterId)" class="link">
-              {{ mitarbeiterLabel(a.mitarbeiterId) }}
-            </a>
+              <ng-container *ngIf="kannMitarbeiterBearbeiten(a); else nurName">
+                  <a [routerLink]="['/mitarbeiter', a.mitarbeiterId, 'bearbeiten']"
+                     [title]="mitarbeiterTooltip(a.mitarbeiterId)"
+                     class="link"
+                     (click)="$event.stopPropagation()">
+                      {{ mitarbeiterLabel(a.mitarbeiterId) }}
+                  </a>
+              </ng-container>
+              <ng-template #nurName>
+                  {{ mitarbeiterLabel(a.mitarbeiterId) }}
+              </ng-template>
           </td>
           <td>{{ a.startdatum | date:'dd.MM.yyyy' }}</td>
           <td>{{ a.enddatum   | date:'dd.MM.yyyy' }}</td>

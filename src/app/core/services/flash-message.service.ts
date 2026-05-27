@@ -18,6 +18,10 @@ export class FlashMessageService {
     this.show({ type: 'success', text }, autoHideMs);
   }
 
+  successSticky(text: string): void {
+    this.show({ type: 'success', text }, 0);
+  }
+
   error(text: string, autoHideMs = 4500): void {
     this.show({ type: 'error', text }, autoHideMs);
   }
@@ -50,4 +54,3 @@ export class FlashMessageService {
     }
   }
 }
-

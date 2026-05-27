@@ -206,4 +206,13 @@ export class VacationRequestListComponent implements OnInit {
     const m = this.mitarbeiterMap[mitarbeiterId];
     return m ? `${m.vorname} ${m.nachname}` : mitarbeiterId;
   }
+
+  kannMitarbeiterBearbeiten(a: UrlaubsAntragResponse): boolean {
+    if (!this.mitarbeiter) {
+      return false;
+    }
+
+    // Führungskraft: darf immer auf Mitarbeiter bearbeiten
+    return this.istFuehrungskraft || a.mitarbeiterId === this.mitarbeiter.id;
+  }
 }

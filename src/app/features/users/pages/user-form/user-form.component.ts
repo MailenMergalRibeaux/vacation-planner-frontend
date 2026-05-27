@@ -35,7 +35,6 @@ export class UserFormComponent implements OnInit {
     nachname: ['', [Validators.required, Validators.minLength(2)]],
     email: ['', [Validators.required, Validators.email]],
     rolle: ['MITARBEITER' as Rolle, Validators.required],
-    passwort: [''],
     bundesland: ['BE' as Bundesland, Validators.required],
     vorgesetzterMitarbeiterId: ['']
   });
@@ -44,6 +43,8 @@ export class UserFormComponent implements OnInit {
   isSaving = false;
   fehler = '';
   editId: string | null = null;
+  readonlySelf = false;
+  initialPasswort: string | null = null;
 
   readonly bundeslaender = Object.keys(BUNDESLAND_LABELS) as Bundesland[];
   readonly bundeslandLabels = BUNDESLAND_LABELS;
@@ -65,42 +66,31 @@ export class UserFormComponent implements OnInit {
     this.route.paramMap.subscribe(params => {
       const id = params.get('id');
       this.editId = id;
+      this.readonlySelf = !!(
+          this.currentMitarbeiter && id &&
+          this.currentMitarbeiter.rolle === 'MITARBEITER' &&
+          this.currentMitarbeiter.id === id);
 
       if (id) {
-        this.form.controls.id.disable();
+        // Edit-Modus
+        if (!this.readonlySelf) {
+          // Nur für Führungskräfte relevant: Felder begrenzen
+          this.form.controls.id.disable();
+          this.form.controls.rolle.disable({emitEvent: false});
+          this.form.controls.vorgesetzterMitarbeiterId.disable({emitEvent: false});
+        }
         this.ladeMitarbeiter(id);
-
-        // Rolle im Edit-Modus nicht änderbar
-        this.form.controls.rolle.disable({ emitEvent: false });
-
-        // Vorgesetzter ist im Edit-Fall nicht änderbar -> keine automatische Anpassung mehr
-        this.form.controls.vorgesetzterMitarbeiterId.disable({ emitEvent: false });
       } else {
-        // Create: ID-Feld frei
         this.form.controls.id.enable();
-
-        // Rolle beim Neuanlegen immer MITARBEITER
         this.form.patchValue({ rolle: 'MITARBEITER' as Rolle });
 
-        const current = this.currentMitarbeiter;
-        if (current?.id) {
-          this.form.patchValue({ vorgesetzterMitarbeiterId: current.id });
+        if (this.currentMitarbeiter?.id) {
+          this.form.patchValue({ vorgesetzterMitarbeiterId: this.currentMitarbeiter.id });
         }
       }
 
       this.updateVorgesetzterValidator();
-      this.updatePasswortValidator();
     });
-  }
-
-  private updatePasswortValidator(): void {
-    const control = this.form.controls.passwort;
-    if (this.editId) {
-      control.clearValidators();
-    } else {
-      control.setValidators([Validators.required, Validators.minLength(8)]);
-    }
-    control.updateValueAndValidity({ emitEvent: false });
   }
 
   private updateVorgesetzterValidator(): void {
@@ -123,6 +113,9 @@ export class UserFormComponent implements OnInit {
           vorgesetzterMitarbeiterId: m.vorgesetzterMitarbeiterId ?? ''
         });
         this.updateVorgesetzterValidator();
+        if (this.readonlySelf) {
+          this.form.disable({ emitEvent: false });
+        }
         this.isLoading = false;
       },
       error: () => {
@@ -133,6 +126,10 @@ export class UserFormComponent implements OnInit {
   }
 
   speichern(): void {
+    if (this.readonlySelf) {
+      return;
+    }
+
     if (this.form.invalid) {
       this.fehler = 'Bitte alle Pflichtfelder korrekt ausfuellen.';
       this.form.markAllAsTouched();
@@ -144,7 +141,6 @@ export class UserFormComponent implements OnInit {
     const vorname = rawValue.vorname?.trim() ?? '';
     const nachname = rawValue.nachname?.trim() ?? '';
     const email = rawValue.email?.trim() ?? '';
-    const passwort = rawValue.passwort ?? '';
     const vorgesetzterMitarbeiterId = rawValue.vorgesetzterMitarbeiterId?.trim() || null;
 
     const request: MitarbeiterRequest = {
@@ -153,7 +149,6 @@ export class UserFormComponent implements OnInit {
       nachname,
       email,
       rolle: rawValue.rolle as Rolle,
-      ...(this.editId ? {} : { passwort }),
       bundesland: rawValue.bundesland as Bundesland,
       vorgesetzterMitarbeiterId
     };
@@ -166,7 +161,6 @@ export class UserFormComponent implements OnInit {
         nachname: request.nachname,
         email: request.email,
         rolle: request.rolle,
-        ...(request.passwort ? { passwort: request.passwort } : {}),
         bundesland: request.bundesland,
         vorgesetzterMitarbeiterId: request.vorgesetzterMitarbeiterId
       },
@@ -175,7 +169,6 @@ export class UserFormComponent implements OnInit {
         vorname: request.vorname,
         nachname: request.nachname,
         email: request.email,
-        ...(request.passwort ? { passwort: request.passwort } : {}),
         bundesland: request.bundesland,
         vorgesetzterMitarbeiterId: request.vorgesetzterMitarbeiterId
       },
@@ -185,7 +178,6 @@ export class UserFormComponent implements OnInit {
         nachname: request.nachname,
         email: request.email,
         rolle: request.rolle,
-        ...(request.passwort ? { passwort: request.passwort } : {}),
         bundesland: request.bundesland
       },
       {
@@ -193,7 +185,6 @@ export class UserFormComponent implements OnInit {
         vorname: request.vorname,
         nachname: request.nachname,
         email: request.email,
-        ...(request.passwort ? { passwort: request.passwort } : {}),
         bundesland: request.bundesland
       },
       {
@@ -202,7 +193,6 @@ export class UserFormComponent implements OnInit {
         nachname: request.nachname,
         email: request.email,
         rolle: request.rolle,
-        ...(request.passwort ? { passwort: request.passwort } : {}),
         bundesland: request.bundesland,
         vorgesetzterId: request.vorgesetzterMitarbeiterId
       }
@@ -214,11 +204,16 @@ export class UserFormComponent implements OnInit {
     const request$ = this.saveWithFallbacks(payloads, 0);
 
     request$.subscribe({
-      next: () => {
+      next: (response: MitarbeiterResponse) => {
         this.isSaving = false;
-        this.flashMessageService.success(this.editId
-          ? 'Mitarbeiter erfolgreich aktualisiert.'
-          : 'Mitarbeiter erfolgreich angelegt.');
+
+        if (!this.editId && response.initialPasswort) {
+          this.initialPasswort = response.initialPasswort;
+          this.flashMessageService.successSticky('Mitarbeiter erfolgreich angelegt. Initiales Passwort siehe unten.');
+          return;
+        }
+
+        this.flashMessageService.success(this.editId ? 'Mitarbeiter erfolgreich aktualisiert.' : 'Mitarbeiter erfolgreich angelegt.');
         this.router.navigate(['/mitarbeiter']);
       },
       error: (e: any) => {
@@ -263,6 +258,20 @@ export class UserFormComponent implements OnInit {
         }
       }
     });
+  }
+
+  kopiereInitialPasswort(): void {
+    if (!this.initialPasswort) return;
+    navigator.clipboard.writeText(this.initialPasswort).then(() => {
+      this.flashMessageService.success('Initiales Passwort in die Zwischenablage kopiert.');
+    }).catch(() => {
+      this.fehler = 'Passwort konnte nicht in die Zwischenablage kopiert werden.';
+    });
+  }
+
+  weiterZurListe(): void {
+    this.initialPasswort = null;
+    this.router.navigate(['/mitarbeiter']);
   }
 
   private saveWithFallbacks(payloads: Record<string, any>[], index: number): Observable<MitarbeiterResponse> {

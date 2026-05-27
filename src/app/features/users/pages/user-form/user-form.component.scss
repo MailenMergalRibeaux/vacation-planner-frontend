@@ -75,3 +75,27 @@ label {
   }
 }
 
+.initial-password-panel {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid #f0ad4e;
+  background: #fff8e1;
+  border-radius: 4px;
+}
+
+.initial-password-value {
+  font-family: monospace;
+  font-size: 1.1rem;
+  padding: 0.5rem;
+  background: #fff;
+  border-radius: 4px;
+  border: 1px dashed #ccc;
+  display: inline-block;
+  margin-bottom: 0.75rem;
+}
+
+.initial-password-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}

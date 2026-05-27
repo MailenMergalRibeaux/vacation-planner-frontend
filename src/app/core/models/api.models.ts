@@ -42,7 +42,7 @@ export interface MitarbeiterRequest {
   nachname: string;
   email: string;
   rolle: Rolle;
-  passwort?: string;
+  passwort?: string; // bleibt optional und kann gelöscht werden
   bundesland: Bundesland;
   vorgesetzterMitarbeiterId?: string | null;
 }
@@ -57,6 +57,7 @@ export interface MitarbeiterResponse {
   bundesland: Bundesland;
   vorgesetzterMitarbeiterId?: string | null;
   passwortAenderungErforderlich?: boolean;
+  initialPasswort?: string;
 }
 
 // ---- UrlaubsAntrag ----
